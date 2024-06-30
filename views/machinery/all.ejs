@@ -1,0 +1,202 @@
+<% layout('layout/boilerplate')%>
+
+
+
+<% //pagination
+const machineryPerPage = 12;
+const totalPages = Math.ceil(machinerys.length / machineryPerPage);
+if(currentPage>=totalPages){
+  currentPage=1;
+}
+const startIndex = (currentPage - 1) * machineryPerPage;
+const endIndex = startIndex + machineryPerPage;
+const visibleMachinerys = machinerys.slice(startIndex, endIndex);
+%>
+<style>
+    body {
+        font-family: 'Roboto', Arial, sans-serif;
+        background-color: #f2f2f2;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page-content {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+    }
+
+    .card:hover {
+        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-5px);
+    }
+
+    .card-img-top {
+        height: 200px;
+        object-fit: cover;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .card-text {
+        color: #555;
+        line-height: 1.5;
+    }
+
+
+    #pagetitle {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #007bff;
+        text-align: center;
+        text-transform: uppercase;
+        margin-bottom: 30px;
+        position: relative;
+    }
+
+    #pagetitle::after {
+        content: "";
+        display: block;
+        width: 60px;
+        height: 3px;
+        background-color: #007bff;
+        position: absolute;
+        bottom: -10px;
+        left: calc(50% - 30px);
+        border-radius: 2px;
+    }
+</style>
+<div class="container">
+    <h3 id="pagetitle">Machinery</h3>
+    <br>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form id="searchForm">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search Machinery">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-primary" type="submit">Search</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <div class="dropdown float-md-right">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Sort by Price
+                </button>
+                <div class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <a class="dropdown-item" href="/machinery?sort=asc">Ascending</a>
+                    <a class="dropdown-item" href="/machinery?sort=desc">Descending</a>
+                </div>
+            </div>
+            <% if(User && User.user_type==="merchant"){%>
+                <div>
+                    <br>
+                    <a class="btn btn-success" href="/machinery/new">New Machinery</a>
+                </div>
+                <%}%>
+        </div>
+        
+    </div>
+
+    <!-- Machinery cards -->
+    <div class="row">
+        <% visibleMachinerys.forEach(function(mach) { %>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <img class="card-img-top" style="height: 200px;"  src="<%= mach.image_url %>">
+                <div class="card-body">
+                    <h5 class="card-title"><%= mach.machinery_name %></h5>
+                    <p class="card-text"><%= mach.state %></p>
+                    <p class="card-text">Price: $<%= mach.price %></p>
+                    <a href="/machinery/<%= mach.machinery_id %>" class="btn btn-primary">Buy</a>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+    </div>
+
+    <!-- Pagination buttons -->
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <% if (currentPage > 1) { %>
+                    <li class="page-item">
+                        <a class="page-link" href="/machinery?page=<%= currentPage - 1 %>" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <% } %>
+                    <% for (let i = 1; i <= totalPages; i++) { %>
+                    <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                        <a class="page-link" href="/machinery?page=<%= i %>"><%= i %></a>
+                    </li>
+                    <% } %>
+                    <% if (currentPage < totalPages) { %>
+                    <li class="page-item">
+                        <a class="page-link" href="/machinery?page=<%= currentPage + 1 %>" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <% } %>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('searchForm');
+      const searchInput = document.getElementById('searchInput');
+      const currentUrl = window.location.href;
+
+      // Check if there is a previous search query
+      const urlParams = new URLSearchParams(window.location.search);
+      const prevSearchQuery = urlParams.getAll('search').join(' '); // Combine multiple search queries if present
+      if (prevSearchQuery) {
+          // Set the search input value to the previous search query
+          searchInput.value = prevSearchQuery;
+      }
+
+      form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          const newSearchQuery = searchInput.value.trim(); // Trim whitespace
+          const newUrl = updateQueryStringParameter(currentUrl, 'search', newSearchQuery);
+          window.location.href = newUrl;
+      });
+  });
+
+  // Function to update or add a query parameter to the URL
+  function updateQueryStringParameter(uri, key, value) {
+      const re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+      const separator = uri.includes('?') ? '&' : '?';
+      if (uri.match(re)) {
+          return uri.replace(re, '$1' + key + "=" + value + '$2');
+      } else {
+          return uri + separator + key + "=" + value;
+      }
+  }
+</script>

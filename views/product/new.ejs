@@ -1,0 +1,311 @@
+<% layout('layout/boilerplate') %>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-6">
+        <div id="product-form-card" class="card shadow-sm">
+          <div class="card-body">
+
+            <form action="/product" method="post" class="validated-form" id="product-form" novalidate
+              enctype="multipart/form-data">
+              <!-- Step 1 -->
+              <div id="form-step-1" class="form-step">
+                <div class="form-group">
+                  <label for="product_name">Product Name:</label>
+                  <input type="text" class="form-control" id="product_name" name="product_name" required>
+                  <div class="invalid-feedback">Please provide a valid product name.</div>
+                </div>
+                <div class="form-group">
+                  <label for="image">Image:</label>
+                  <div id="file-upload-container" class="file-upload-container">
+                    <input type="file" id="image" name="image" class="form-control-file" accept=".jpg, .png, .svg"
+                      required>
+                    <label for="image" class="file-upload-label">
+                      <span class="text">Choose a .jpg, .png, or .svg file or drag it here</span>
+                    </label>
+                  </div>
+                  <div class="invalid-feedback">Please choose a .jpg, .png, or .svg file.</div>
+                </div>
+                <button type="button" class="btn btn-primary btn-block mt-3" onclick="showStep(2)">Next</button>
+              </div>
+
+              <!-- Step 2 -->
+              <div id="form-step-2" class="form-step d-none">
+                <div class="form-group">
+                  <label for="description">Description:</label>
+                  <textarea class="form-control" id="description" name="description" rows="3" minlength="20"
+                    required></textarea>
+                  <div class="invalid-feedback">Please provide a description with at least 20 characters.</div>
+                </div>
+                <div class="form-group">
+                  <label for="quantity">Quantity (Kg):</label>
+                  <input type="number" class="form-control" id="quantity" name="quantity" required>
+                  <div class="invalid-feedback">Please provide a valid quantity.</div>
+                </div>
+                <div class="form-group">
+                  <label for="quality">Quality:</label>
+                  <select class="form-control" id="quality" name="quality" required>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                  <div class="invalid-feedback">Please select a quality level.</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-block mt-3" onclick="showStep(1)">Back</button>
+                <button type="button" class="btn btn-primary btn-block mt-3" onclick="showStep(3)">Next</button>
+              </div>
+
+              <!-- Step 3 -->
+              <div id="form-step-3" class="form-step d-none">
+                <div class="form-group">
+                  <label for="starting_price">Starting Price ($):</label>
+                  <input type="number" class="form-control" id="starting_price" name="starting_price" step="0.01"
+                    required>
+                  <div class="invalid-feedback">Please provide a valid starting price.</div>
+                </div>
+                <div class="form-group">
+                  <label for="reserve_price">MSP Reserve Price:</label>
+                  <select class="form-control" id="reserve_price" name="reserve_price" required>
+                    <% mspset.forEach(function(crop) { %>
+                      <option value="<%= crop.price %>">
+                        <%= crop.crop_name %> ($<%= crop.price %>)
+                      </option>
+                      <% }) %>
+                  </select>
+                  <div class="invalid-feedback">Please select an MSP reserve price.</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-block mt-3" onclick="showStep(2)">Back</button>
+                <button type="button" class="btn btn-primary btn-block mt-3" onclick="showStep(4)">Next</button>
+              </div>
+
+              <!-- Step 4 -->
+              <div id="form-step-4" class="form-step d-none">
+                <div class="form-group">
+                  <label for="address">Address:</label>
+                  <input type="text" class="form-control" id="address" name="address" required>
+                  <div class="invalid-feedback">Please provide a valid address.</div>
+                </div>
+                <div class="form-group">
+                  <label for="map">Provide the exact location of your field:</label>
+                  <div id="map" class="mb-3 mt-2 rounded shadow-sm" style="height: 300px; width: 400px;"></div>
+                  <small class="text-muted">Adjust the location exactly at your field</small>
+                </div>
+                <input type="hidden" id="lng" name="lng" required>
+                <input type="hidden" id="lat" name="lat" required>
+                <button type="button" class="btn btn-secondary btn-block mt-3" onclick="showStep(3)">Back</button>
+                <button type="submit" class="btn btn-primary btn-block mt-3">Add Product</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 d-none d-md-block">
+        <img src="/images/farmer.png" class="img-fluid" alt="Product Image">
+      </div>
+    </div>
+  </div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <script>
+    // JavaScript for additional validation (optional)
+    document.getElementById('image').addEventListener('change', function () {
+      const file = this.files[0];
+      const fileType = file.type.toLowerCase();
+
+      // Check if the selected file type is allowed
+      if (!['image/jpeg', 'image/png', 'image/svg+xml'].includes(fileType)) {
+        this.setCustomValidity('Only JPG, PNG, or SVG files are allowed.');
+      } else {
+        this.setCustomValidity('');
+      }
+
+      // Optionally, display file name or any other feedback
+      const fileName = file.name;
+      document.querySelector('.file-upload-label .text').textContent = fileName;
+    });
+
+    function showStep(step) {
+      document.querySelectorAll('.form-step').forEach((el) => el.classList.add('d-none'));
+      document.getElementById('form-step-' + step).classList.remove('d-none');
+    }
+
+    mapboxgl.accessToken = '<%- process.env.MAPBOX_TOKEN %>';
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/satellite-streets-v11',
+      center: ["<%= loc.lng %>", "<%= loc.lat %>"],
+      zoom: 11
+    });
+
+    map.addControl(new mapboxgl.NavigationControl());
+
+    let marker;
+    map.on('click', function (e) {
+      const coordinates = e.lngLat;
+      document.getElementById('lng').value = coordinates.lng;
+      document.getElementById('lat').value = coordinates.lat;
+
+      if (marker) {
+        marker.setLngLat(coordinates);
+      } else {
+        marker = new mapboxgl.Marker().setLngLat(coordinates).addTo(map);
+      }
+    });
+
+    document.getElementById('address').addEventListener('input', function (e) {
+      const address = e.target.value.trim();
+
+      if (address.length > 10) {
+        axios.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${address}.json`, {
+          params: {
+            access_token: '<%- process.env.MAPBOX_TOKEN %>'
+          }
+        }).then(response => {
+          if (response.data.features.length > 0) {
+            const coordinates = response.data.features[0].geometry.coordinates;
+            map.setCenter(coordinates);
+            document.getElementById('lng').value = coordinates[0];
+            document.getElementById('lat').value = coordinates[1];
+
+            if (marker) {
+              marker.setLngLat(coordinates);
+            } else {
+              marker = new mapboxgl.Marker().setLngLat(coordinates).addTo(map);
+            }
+          }
+        }).catch(err => {
+          console.error('Error fetching coordinates:', err);
+        });
+      }
+    });
+
+    const forms = document.querySelectorAll('.validated-form');
+    // Form validation
+    (function () {
+      'use strict';
+      var form = document.getElementById('product-form');
+      form.addEventListener('submit', function (event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          // Find the first invalid field and show the respective form step
+          var invalidFields = form.querySelectorAll(':invalid');
+          if (invalidFields.length > 0) {
+            var firstInvalidField = invalidFields[0];
+            var step1 = document.getElementById('form-step-1');
+            var step2 = document.getElementById('form-step-2');
+            var step3 = document.getElementById('form-step-3');
+
+            // Show the appropriate card based on the invalid field
+            if (step1.contains(firstInvalidField)) {
+              showStep(1);
+            } else if (step2.contains(firstInvalidField)) {
+              showStep(2);
+            } else if (step3.contains(firstInvalidField)) {
+              showStep(3);
+            }
+          }
+        }
+        form.classList.add('was-validated');
+      }, false);
+    })();
+
+    function showStep(step) {
+      document.querySelectorAll('.form-step').forEach((el) => el.classList.add('d-none'));
+      document.getElementById('form-step-' + step).classList.remove('d-none');
+    }
+  </script>
+
+  <style>
+    .col-md-6 {
+      position: relative;
+      height: 80vh;
+      overflow: -moz-hidden-unscrollable;
+    }
+
+    .img-fluid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .file-upload-container {
+      position: relative;
+      width: 100%;
+      height: 150px;
+      border: 2px dashed #ccc;
+      border-radius: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+    }
+
+    .file-upload-container:hover {
+      border-color: #007bff;
+    }
+
+    .file-upload-label {
+      text-align: center;
+    }
+
+    .file-upload-label .text {
+      font-size: 16px;
+      color: #666;
+    }
+
+    #image {
+      display: none;
+    }
+
+    .container-fluid {
+      padding: 0;
+    }
+
+    .card {
+      border: none;
+      border-radius: 0.75rem;
+      margin-top: 0px;
+    }
+
+    .form-control:focus,
+    .form-control-file:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
+    }
+
+    #map {
+      border-radius: 0.75rem;
+      border: 1px solid #dee2e6;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+      border-color: #004085;
+    }
+
+    .form-step {
+      display: none;
+    }
+
+    .form-step.d-none {
+      display: none;
+    }
+
+    .form-step:not(.d-none) {
+      display: block;
+    }
+  </style>

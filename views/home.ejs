@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriBazar</title>
+    <link rel="icon" type="image/x-icon"
+        href="https://cdn5.vectorstock.com/i/1000x1000/81/69/white-bold-tree-icon-on-green-background-vector-1718169.jpg">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="stylesheets/home.css">
+</head>
+
+<body class="d-flex text-center text-white bg-dark">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <header class="mb-auto">
+            <div>
+                <h3 class="float-md-left mb-0">AgriBazar</h3>
+                <nav class="nav nav-masthead justify-content-center float-md-right">
+                    <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    <a class="nav-link" href="/product">Product</a>
+                    <a class="nav-link" href="/machinery">Machinery</a>
+                    <a class="nav-link" href="/Blogs">Blogs</a>
+                    <% if(!currentUser) { %>
+                        <a class="nav-link" href="/login">Login</a>
+                        <a class="nav-link" href="/register">Register</a>
+                        <% } else { %>
+                            <a class="nav-link" href="/logout">Logout</a>
+                            <% } %>
+                </nav>
+            </div>
+        </header>
+        <main class="px-3">
+            <div class="text-center">
+                <div class="d-flex justify-content-center align-items-center mb-5">
+                    <div class="info-box mx-3">
+                        <p>People we Connect</p>
+                        <div id="user-count" class="slot-machine"></div>
+                    </div>
+                    <a href="/register" class="btn btn-primary register-button mx-3">Register Now</a>
+                    <div class="info-box mx-3">
+                        <p>Auctions</p>
+                        <p>Live</p>
+                        <div id="product-count" class="slot-machine"></div>
+                    </div>
+                </div>
+                <p class="mt-5">Our vision is to give every farmer their right <br> every merchant good trade.</p>
+            </div>
+        </main>
+        <footer class="mt-auto text-white-50">
+            <p>&copy; 2024 AgriBazar</p>
+        </footer>
+    </div>
+    <script>// scripts/home.js
+        document.addEventListener("DOMContentLoaded", function () {
+            function updateSlotMachine(elementId, count) {
+                const element = document.getElementById(elementId);
+                const inner = document.createElement('div');
+                inner.classList.add('slot-machine-inner');
+                for (let i = 0; i <= count; i++) {
+                    const numberDiv = document.createElement('div');
+                    numberDiv.classList.add('number');
+                    numberDiv.innerText = i;
+                    inner.appendChild(numberDiv);
+                }
+                element.appendChild(inner);
+                setTimeout(() => {
+                    inner.style.top = `-${count * 40}px`;
+                }, 100);
+            }
+
+            fetch('/api/user-count')
+                .then(response => response.json())
+                .then(data => {
+                    updateSlotMachine('user-count', data.count);
+                })
+                .catch(error => {
+                    console.error('Error fetching user count:', error);
+                    document.getElementById('user-count').innerText = 'Error';
+                });
+
+            fetch('/api/product-count')
+                .then(response => response.json())
+                .then(data => {
+                    updateSlotMachine('product-count', data.count);
+                })
+                .catch(error => {
+                    console.error('Error fetching product count:', error);
+                    document.getElementById('product-count').innerText = 'Error';
+                });
+        });
+    </script>
+</body>
+
+</html>

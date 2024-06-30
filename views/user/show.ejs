@@ -1,0 +1,105 @@
+<% layout('layout/boilerplate') %>
+    <style>
+        body {
+            background-image: url("/images/userpagebg.jpg");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    </style>
+
+    <link rel="stylesheet" href="/stylesheets/user-show.css">
+
+    <div class="card-container">
+        <div class="card">
+            <div class="img-bx">
+                <img src="<%= user.image_url ? user.image_url : 'https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-1024.png' %>"
+                    alt="Profile Picture" class="profile-img" id="profileImage" />
+            </div>
+            <div class="content">
+                <h2>
+                    <%= user.username %>
+                </h2>
+                <p>
+                    <%= user.user_type %>
+                </p>
+                <div class="action-btns">
+                    <form action="/user/<%= user.user_id %>?_method=DELETE" method="post" class="d-inline-block">
+                        <button type="submit" class="btn-action" title="Delete User">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </form>
+                    <a href="/machinery/cart" class="btn-action" title="Cart">
+                        <i class="bi bi-cart3"></i>
+                    </a>
+                    <a href="/logout" class="btn-action" title="Your will Logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="action-btns extra-btns">
+                    <% if (user.user_type==='merchant' || user.user_type==='farmer' ) { %>
+                        <a href="<%= user.user_type === 'merchant' ? '/machinery/new' : '/product/new' %>"
+                            class="btn-action"
+                            title="<%= user.user_type === 'merchant' ? 'Add new machinery' : 'Add new farm product' %>">
+                            <i class="bi bi-plus-circle"></i>
+                        </a>
+                        <% } %>
+                            <a href="/user/products" class="btn-action" title="Your products on Live Auction">
+                                <i class="bi bi-view-list"></i>
+                            </a>
+                            <a href="/user/won" class="btn-action" title="Auctions won">
+                                <i class="bi bi-list"></i>
+                            </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="changeImageModal" tabindex="-1" aria-labelledby="changeImageModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changeImageModalLabel">Change Profile Picture</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changeImageForm" action="/user/<%= user.user_id %>/change-image?_method=PUT" method="post"
+                        enctype="multipart/form-data">
+                        <div class="mb-3 text-center">
+                            <img src="<%= user.image_url ? user.image_url : 'https://cdn3.iconfinder.com/data/icons/avatars-flat/33/man_5-1024.png' %>"
+                                alt="Current Profile Picture" class="img-thumbnail" id="currentProfileImage" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="newProfileImage" class="form-label">Choose new profile picture:</label>
+                            <input class="form-control" type="file" id="newProfileImage" name="newProfileImage"
+                                accept="image/*" onchange="previewNewImage(event)">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+
+    <script>
+        document.getElementById('profileImage').addEventListener('click', function () {
+            var changeImageModal = new bootstrap.Modal(document.getElementById('changeImageModal'), {
+                keyboard: false
+            });
+            changeImageModal.show();
+        });
+
+        function previewNewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function () {
+                var output = document.getElementById('currentProfileImage');
+                output.src = reader.result;
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    </script>

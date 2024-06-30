@@ -1,0 +1,50 @@
+<% layout('layout/boilerplate') %>
+<link rel="stylesheet" href="/stylesheets/productshow.css">
+<script src="/javascript/showPage.js"></script>
+<div class="container page-content">
+    <h1 id="pagetitle">Farm Product</h1>
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="btn-group">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Sort
+                </button>
+                <div class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <a class="dropdown-item" href="?sort=asc">Ascending</a>
+                    <a class="dropdown-item" href="?sort=desc">Descending</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <form id="searchForm">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search Products">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-primary" type="submit">Search</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-3 text-right">
+            <% if (User && User.user_type === "farmer") { %>
+                <a class="btn btn-success" href="/product/new">Add Your Product</a>
+            <% } %>
+        </div>
+        <div id="loading" class="loader-container">
+            <div class="bouncing-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+        <div class="row products-container"></div>
+        <a id="viewMapBtn" class="btn btn float-btn center" href="/product/map">View Map 🧭</a>
+        <div class="col-md-12">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>

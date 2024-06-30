@@ -1,0 +1,57 @@
+<% layout('layout/boilerplate') %>
+
+    <div class="container mt-5">
+        <h2>Add New Post</h2>
+        <hr>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <form action="/blogs" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="image-preview" class="form-label"></label>
+                                <img src="#" id="image-preview" class="img-thumbnail d-none" alt="Image Preview"
+                                    style="max-width: 200px;">
+                            </div>
+                            <div class="mb-3">
+                                <label for="image" class="form-label">Image (JPG, PNG, JPEG only)</label>
+                                <input type="file" class="form-control" id="image" name="image"
+                                    accept=".jpg, .jpeg, .png" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="title" name="title" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="content" class="form-label">Content</label>
+                                <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#image').change(function () {
+                readURL(this);
+            });
+
+            function readURL(input) {
+                if (input.files && input.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        $('#image-preview').attr('src', e.target.result);
+                        $('#image-preview').removeClass('d-none');
+                    }
+
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+        });
+    </script>

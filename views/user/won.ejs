@@ -1,0 +1,112 @@
+<% layout('layout/boilerplate') %>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Auctions Won By You</h2>
+            <button class="btn btn-primary" id="download-csv">Download CSV</button>
+        </div>
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>View</th>
+                    <th>Product Name</th>
+                    <th>Image</th>
+                    <th>Quantity</th>
+                    <th>Quality</th>
+                    <th>Starting Price</th>
+                    <th>Reserve Price</th>
+                    <th>Status</th>
+                    <th>Sale Price</th>
+                    <th>Seller Username</th>
+                    <th>Seller Email</th>
+                </tr>
+            </thead>
+            <tbody id="product-table">
+                <% products.forEach(product=> { %>
+                    <tr>
+                        <td><a href="/product/<%= product.product_id %>" class="btn btn-success">View</a></td>
+                        <td>
+                            <%= product.product_name %>
+                        </td>
+                        <td><img src="<%= product.image_url %>" alt="Product Image" class="product-img"></td>
+                        <td>
+                            <%= product.quantity %>
+                        </td>
+                        <td>
+                            <%= product.quality %>
+                        </td>
+                        <td>
+                            <%= product.starting_price %>
+                        </td>
+                        <td>
+                            <%= product.reserve_price %>
+                        </td>
+                        <td>
+                            <%= product.status %>
+                        </td>
+                        <td>
+                            <%= product.sale_price %>
+                        </td>
+                        <td>
+                            <%= product.seller_username %>
+                        </td>
+                        <td>
+                            <%= product.seller_email %>
+                        </td>
+                    </tr>
+                    <% }); %>
+            </tbody>
+        </table>
+    </div>
+
+    <style>
+        .table {
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+        }
+
+        .thead-dark th {
+            background-color: #343a40;
+            color: #fff;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+
+        .product-img {
+            max-width: 100px;
+            height: auto;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+
+    <script>
+        document.getElementById('download-csv').addEventListener('click', function () {
+            const rows = document.querySelectorAll('#product-table tr');
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Product Name,Image URL,Quantity,Quality,Starting Price,Reserve Price,Status,Sale Price,Seller Username,Seller Email\n";
+
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td, th');
+                let rowContent = Array.from(cols).map(col => col.innerText).join(",");
+                csvContent += rowContent + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "auctions_won.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>

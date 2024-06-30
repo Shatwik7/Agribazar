@@ -1,0 +1,77 @@
+.card-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
+    background: linear-gradient(135deg, #f6f9fc00, #e6e9f001);
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.553);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-10px);
+}
+
+.img-bx {
+    border-radius: 50%;
+    overflow: hidden;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    border: 3px solid #ffd700;
+}
+
+.profile-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.content {
+    padding: 20px;
+}
+
+.action-btns {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.extra-btns {
+    margin-top: 20px;
+}
+
+.btn-action {
+    border: none;
+    border-radius: 50%;
+    background-color: #add8e6;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+    background-color: #87ceeb;
+    transform: scale(1.1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.bi {
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.bi:hover {
+    color: #1f2c3e;
+}

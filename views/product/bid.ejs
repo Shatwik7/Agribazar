@@ -1,0 +1,133 @@
+<% layout('layout/boilerplate') %>
+<link rel="stylesheet" href="/public/stylesheets/bid.css">
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-md-5">
+      <div class="card shadow-sm border-0 mb-4">
+        <img src="<%= product.image_url %>" class="card-img-top rounded-top" alt="<%= product.product_name %>">
+        <div class="card-body">
+          <h5 class="card-title font-weight-bold text-primary" style="text-transform: capitalize;"><%= product.product_name %></h5>
+          <p class="card-text">Starting Price: <strong class="text-success">$<%= product.starting_price %></strong></p>
+          <p class="card-text">Quantity: <strong class="text-info"><%= product.quantity %></strong></p>
+          <p class="card-text">Quality: <strong class="text-warning"><%= product.quality %></strong></p>
+          <p class="card-text"><%= product.description %></p>
+          <% if(currentUser == product.seller_id){ %>
+            <form action="/product/<%= product.product_id %>?_method=DELETE" method="post">
+              <button type="submit" class="btn btn-danger mb-4" title="Deletes the product">DELETE</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+
+      <% var max = (bids) => {
+          let maxBid = bids[0];
+          for (let i = 1; i < bids.length; i++) {
+            if (parseFloat(bids[i].bid_amount) > parseFloat(maxBid.bid_amount)) {
+              maxBid = bids[i];
+            }
+          }
+          return maxBid;
+        }
+        var highestBid = max(bids);
+      %>
+
+      <% if (highestBid.bid_amount) { %>
+        <div class="card mt-3 shadow-sm border-0">
+          <div class="card-body">
+            <h6 class="card-title">Highest Bid: <strong class="text-success">$<%= highestBid.bid_amount %></strong></h6>
+            <h7 class="card-subtitle text-muted">by <%= highestBid.bidder_username %></h7>
+            <% if (currentUser == product.seller_id && product.status == "active") { %>
+              <a href="/product/sold/<%= product.product_id %>" id="sold" class="btn btn-success mt-2" title="Concludes the Auction">Sold!</a>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="col-md-6">
+      <!-- Mapbox map container -->
+      <div id="map" style="height: 300px;" class="mb-4 rounded shadow-sm"></div>
+
+      <% if (product.status == "active" && currentUser !== product.seller_id) { %>
+        <form action="/bid/<%= product.product_id %>" class="validated-form" novalidate method="post">
+          <div style="align-items: center;">
+            <div class="form-group mb-4">
+              <label for="bid_amount" class="font-weight-bold">Enter Bid Amount:</label>
+              <input type="number" class="form-control" id="bid_amount" name="bid_amount" min=<%= product.starting_price %> step="0.01" max="999999">
+              <div class="invalid-feedback">Amount must be greater than $<%= product.starting_price %> and less than million</div>
+              <div class="valid-feedback">Looks good!</div>
+            </div>
+            <button type="submit" class="btn btn-primary mb-4">Place Bid</button>
+          </div>  
+        </form>
+      <% } %>
+
+      <div id="bidsContainer" class="overflow-auto" style="max-height: 300px;">
+        <!-- Bids will be dynamically loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include Mapbox GL JS -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet">
+
+<script>
+  const mapToken = '<%- process.env.MAPBOX_TOKEN %>';
+  mapboxgl.accessToken = mapToken;
+
+  const coordinates = { lng: "<%= product.lng %>", lat: "<%= product.lat %>" };
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v9',
+    center: [coordinates.lng, coordinates.lat],
+    zoom: 10,
+  });
+
+  map.addControl(new mapboxgl.NavigationControl());
+
+  const marker = new mapboxgl.Marker()
+    .setLngLat(coordinates)
+    .addTo(map);
+
+  function fetchBids() {
+    const productId = "<%= product.product_id %>";
+    fetch(`/product/${productId}/bids`)
+      .then(response => response.json())
+      .then(bids => {
+        const bidsContainer = document.querySelector('#bidsContainer');
+        bidsContainer.innerHTML = '';
+        if (bids[0].bid_amount) {
+          bids.reverse();
+          bids.forEach(bid => {
+            const bidCard = `
+              <div class="card mb-3 shadow-sm border-0">
+                <div class="card-body">
+                  <h4 class="card-title" style="text-transform: capitalize;">${bid.bidder_username}</h4>
+                  <h6 class="card-subtitle text-muted">Bid Amount: $${bid.bid_amount}</h6>
+                  <p class="card-text">Bid Time: ${new Date(bid.bid_time).toLocaleString()}</p>
+                </div>
+              </div>
+            `;
+            bidsContainer.innerHTML += bidCard;
+          });
+        } else {
+          const noBidsCard = `
+            <div class="card mb-3 shadow-sm border-0">
+              <div class="card-body">
+                <h4 class="card-title">No bids yet!</h4>
+                <h6 class="card-subtitle text-muted">Be the first to bid</h6>
+              </div>
+            </div>
+          `;
+          bidsContainer.innerHTML += noBidsCard;
+        }
+      })
+      .catch(error => console.error('Error fetching bids:', error));
+  }
+
+  setInterval(fetchBids, 30000);
+  fetchBids();
+</script>
+

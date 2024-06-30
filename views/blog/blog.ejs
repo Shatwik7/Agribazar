@@ -1,0 +1,101 @@
+<% layout('layout/boilerplate') %>
+
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card">
+          <img src="<%= post.blog_image_url %>" class="card-img-top" alt="Blog Image">
+          <div class="card-body">
+            <h2 class="card-title">
+              <%= post.title %>
+            </h2>
+            <hr>
+            <p class="card-text">
+              <%= post.content %>
+            </p>
+            <hr>
+            <p class="card-text"><small class="text-muted">Posted <span class="time-ago"
+                  data-timestamp="<%= post.blog_created_at %>"></span></small></p>
+            <p class="card-subtitle text-muted">by <%= post.username %>
+            </p>
+            <br>
+            <!-- Form for deleting the blog post -->
+            <% if (currentUser==post.user_id) { %>
+              <form action="/blog/<%= post.blog_id %>?_method=DELETE" method="POST">
+                <button type="submit" class="btn btn-sm btn-danger mr-2">Delete</button>
+              </form>
+              <% } %>
+                <br>
+          </div>
+        </div>
+
+        <!-- Comment Section -->
+        <h5>Comments</h5>
+        <div class="mt-4" style="max-height: 300px; overflow-y: auto;">
+          <% if (comments.length !=0) { %>
+            <% comments.forEach(comment=> { %>
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h4 class="card-title">
+                    <%= comment.username %>
+                  </h4>
+                  <h6 class="card-subtitle text-muted"><span class="time-ago"
+                      data-timestamp="<%= comment.comment_created_at %>"></span></h6>
+                  <p class="card-text text-muted">
+                    <%= comment.content %>
+                  </p>
+                </div>
+              </div>
+              <% }) %>
+                <% } else { %>
+                  <div>
+                    <p>Be the first to comment!</p>
+                  </div>
+                  <% } %>
+        </div>
+
+        <!-- Comment Form -->
+        <div class="mt-4">
+          <h5>Leave a Comment</h5>
+          <form action="/blogs/<%= post.blog_id %>/comment" method="post">
+            <div class="mb-4">
+              <label class="form-label" for="body">Review text</label>
+              <textarea class="form-control" name="body" id="body" cols="30" rows="3" required></textarea>
+              <div class="valid-feedback">Looks good!</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function timeAgo(timestamp) {
+      const currentDate = new Date();
+      const commentDate = new Date(timestamp);
+      const timeDifference = currentDate - commentDate;
+      const minutes = Math.floor(timeDifference / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      const months = Math.floor(days / 30);
+
+      if (months > 0) {
+        return months === 1 ? '1 month ago' : months + ' months ago';
+      } else if (days > 0) {
+        return days === 1 ? '1 day ago' : days + ' days ago';
+      } else if (hours > 0) {
+        return hours === 1 ? '1 hour ago' : hours + ' hours ago';
+      } else {
+        return minutes <= 1 ? 'just now' : minutes + ' minutes ago';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const timeElements = document.querySelectorAll('.time-ago');
+      timeElements.forEach(element => {
+        const timestamp = element.getAttribute('data-timestamp');
+        element.textContent = timeAgo(timestamp);
+      });
+    });
+  </script>

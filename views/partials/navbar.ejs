@@ -1,0 +1,57 @@
+<nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/">AgriBazar</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+          aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                  <a class="nav-link"  href="/product">Farm Produce</a>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link" href="/machinery">Machinery</a>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link" href="/blogs">Blogs</a>
+              </li>
+          </ul>
+          <% if (!currentUser) { %>
+          <div class="d-flex">
+              <a href="/login" class="btn btn-outline-light me-2">Login</a>
+              <a href="/register" class="btn btn-success">Register</a>
+          </div>
+          <% } else { %>
+          <ul class="navbar-nav">
+              <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                      data-bs-toggle="dropdown" aria-expanded="false">
+                      <i><%= currentUser.user_name %></i>
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" style="width: auto;">
+                      <li><a class="dropdown-item" href="/machinery/cart"><i class="bi bi-cart-check"></i></a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item " href="/logout"><i class="bi bi-box-arrow-right"></i></a></li>
+                  </ul>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link" href="/user/<%=currentUser%>">
+                      <img src="<%=User.image_url || 'https://res.cloudinary.com/dvf46axos/image/upload/v1710180165/AgiBazza/psugjaclfgx0vuvrkfog.png' %>"
+                          width="30" height="30" class="rounded-circle" alt="User Image">
+                  </a>
+              </li>
+          </ul>
+          <% } %>
+      </div>
+  </div>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    .dropdown-menu {
+        min-width: 2rem;
+    }
+    .nav-link.active i {
+        text-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff, 0 0 15px #ffffff, 0 0 20px #ff00de, 0 0 30px #ff00de, 0 0 40px #ff00de, 0 0 55px #ff00de, 0 0 75px #ff00de;
+    }
+</style>
+</nav>

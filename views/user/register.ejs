@@ -1,0 +1,240 @@
+<% layout('layout/boilerplate') %>
+
+    <div class="container mt-5">
+        <div class="blur-background p-4">
+            <h2 class="text-center mb-4">Sign Up</h2>
+            <form id="registrationForm" action="/user/new" method="post" novalidate>
+                <!-- Step 1: Username and Email -->
+                <div class="card" id="step1">
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="username">Username:</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                            <div class="invalid-feedback">
+                                Please provide a valid username.
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="email">Email:</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="invalid-feedback">
+                                Please provide a valid email.
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary" id="toStep2">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: User Type -->
+                <div class="card" id="step2" style="display: none;">
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="user_type">User Type:</label>
+                            <select class="form-control" id="user_type" name="user_type" required>
+                                <option value="">Select user type</option>
+                                <option value="farmer">Farmer</option>
+                                <option value="merchant">Merchant</option>
+                                <option value="consumer">Consumer</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a user type.
+                            </div>
+                        </div>
+                        <div id="userTypeDescription" class="mb-4" style="display: none;">
+                            <p class="form-text text-muted"></p>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" id="backToStep1">Back</button>
+                            <button type="button" class="btn btn-primary" id="toStep3">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Password -->
+                <div class="card" id="step3" style="display: none;">
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="password">Password:</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password"
+                                    pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$" required>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword"
+                                        style="height: 100%;">Show</button>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Password must be at least 8 characters long and contain letters, numbers, and
+                                    special characters.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" id="backToStep2">Back</button>
+                            <button type="submit" class="btn btn-primary">Register</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            var passwordField = document.getElementById('password');
+            var passwordFieldType = passwordField.getAttribute('type');
+            if (passwordFieldType === 'password') {
+                passwordField.setAttribute('type', 'text');
+                this.textContent = 'Hide';
+            } else {
+                passwordField.setAttribute('type', 'password');
+                this.textContent = 'Show';
+            }
+        });
+
+        // Update user type description
+        document.getElementById('user_type').addEventListener('change', function () {
+            var description = document.getElementById('userTypeDescription');
+            var text = '';
+            switch (this.value) {
+                case 'farmer':
+                    text = 'As a Farmer, sell your produce directly, bid on other farmers\' produce, and buy farm equipment.';
+                    break;
+                case 'merchant':
+                    text = 'As a Merchant, sell farming equipment and bid on farmers\' produce.';
+                    break;
+                case 'consumer':
+                    text = 'As a Consumer, bid on farmers\' produce and buy farming equipment from merchants.';
+                    break;
+                default:
+                    text = '';
+            }
+            description.style.display = text ? 'block' : 'none';
+            description.querySelector('p').textContent = text;
+        });
+
+        // Navigation between steps
+        document.getElementById('toStep2').addEventListener('click', function () {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        });
+
+        document.getElementById('backToStep1').addEventListener('click', function () {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
+        });
+
+        document.getElementById('toStep3').addEventListener('click', function () {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+        });
+
+        document.getElementById('backToStep2').addEventListener('click', function () {
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        });
+
+        // Form validation
+        (function () {
+            'use strict';
+            var form = document.getElementById('registrationForm');
+            form.addEventListener('submit', function (event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    // Find the first invalid field and show the respective card
+                    var invalidFields = form.querySelectorAll(':invalid');
+                    if (invalidFields.length > 0) {
+                        var firstInvalidField = invalidFields[0];
+                        var step1 = document.getElementById('step1');
+                        var step2 = document.getElementById('step2');
+                        var step3 = document.getElementById('step3');
+
+                        // Show the appropriate card based on the invalid field
+                        if (step1.contains(firstInvalidField)) {
+                            step1.style.display = 'block';
+                            step2.style.display = 'none';
+                            step3.style.display = 'none';
+                        } else if (step2.contains(firstInvalidField)) {
+                            step1.style.display = 'none';
+                            step2.style.display = 'block';
+                            step3.style.display = 'none';
+                        } else if (step3.contains(firstInvalidField)) {
+                            step1.style.display = 'none';
+                            step2.style.display = 'none';
+                            step3.style.display = 'block';
+                        }
+                    }
+                }
+                form.classList.add('was-validated');
+            }, false);
+        })();
+    </script>
+
+    <style>
+        body {
+            background-image: url('/images/registerformbg.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .container {
+            max-width: 600px;
+        }
+
+        .blur-background {
+            background-color: rgba(255, 255, 255, 0.555);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            border-radius: 20px;
+        }
+
+        .input-group-append .btn {
+            height: 100%;
+        }
+
+        .card {
+            margin-bottom: 1.5rem;
+        }
+
+        .card:not(:first-of-type) {
+            display: none;
+        }
+
+        .card-body {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .invalid-feedback {
+            font-size: 0.875rem;
+        }
+
+        .form-text.text-muted {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+    </style>

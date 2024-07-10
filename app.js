@@ -112,7 +112,6 @@ app.get('/api/products', async (req, res) => {
     if(cachedData){
         return res.json(JSON.parse(cachedData));
     }
-    console.log(search,sort,limit,offset);
     const {products,totalCount}= await database.SearchAndSortProducts(search,sort,limit,offset);
     const data={
         products,
@@ -136,36 +135,9 @@ app.get('/product/map/data', catchAsync(async (req, res) => {
         }
 
         const products = await database.FindAllProduct();
-        const objectsWithGeometry = products.map(obj => {
-            const { lng, lat, product_id, product_name, image_url, description, starting_price, ...rest } = obj;
-            return {
-                geometry: {
-                    type: "Point",
-                    coordinates: [lng, lat]
-                },
-                properties: {
-                    product_id: product_id,
-                    product_name: product_name,
-                    product_card: `
-                        <div class="center">
-                            <div class="article-card">
-                                <div class="close-btn">&times;</div>
-                                <a href="/product/${product_id}">
-                                    <div class="content">
-                                        <p class="date">$${starting_price}</p>
-                                        <p class="title">${product_name}</p>
-                                    </div>
-                                    <img src="${image_url}" alt="article-cover"/>
-                                </a>
-                            </div>
-                        </div>
-                        `
-                }
-            };
-        });
 
-        await redis.set('products_map_data', JSON.stringify(objectsWithGeometry), 'EX', 300);
-        return res.json(objectsWithGeometry);
+        await redis.set('products_map_data', JSON.stringify(products), 'EX', 300);
+        return res.json(products);
     } catch (error) {
         console.error('Error fetching or caching data:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
@@ -178,69 +150,70 @@ app.get('/product/map', catchAsync(async (req, res) => {
 
 app.post('/product/map/data', validMapSearch, catchAsync(async (req, res) => {
     try {
-        const addressKey = `geo#${req.body.address}`;
-        const productsKey = `products#${req.body.address}#${req.body.radius}`;
-        const geometryKey = `geometry#${req.body.address}#${req.body.radius}`;
+        const search = req.body.search ? req.body.search.toLowerCase() : '';
+        const address = req.body.address;
+        const radius = req.body.radius;
+        const addressKey = `geo#${address}`;
+        const productsKey = `products#${address}#${radius}`;
+        const searchKey = `products#search#${search}`;
         let geoData = await redis.get(addressKey);
         let coordinates;
-        if (!geoData) {
-            const geoResponse = await geocoder.forwardGeocode({
-                query: `${req.body.address}`,
-                limit: 1
-            }).send();
-            if (!geoResponse || !geoResponse.body.features || !geoResponse.body.features[0]) {
-                return res.status(400).json({ error: 'No such place' });
+        if (address && radius) {
+            if (!geoData) {
+                const geoResponse = await geocoder.forwardGeocode({
+                    query: `${address}`,
+                    limit: 1
+                }).send();
+                if (!geoResponse || !geoResponse.body.features || !geoResponse.body.features[0]) {
+                    return res.status(400).json({ error: 'No such place' });
+                }
+                coordinates = geoResponse.body.features[0].geometry.coordinates;
+                await redis.set(addressKey, JSON.stringify(coordinates), 'EX', 600);
+            } else {
+                coordinates = JSON.parse(geoData);
             }
-            coordinates = geoResponse.body.features[0].geometry.coordinates;
-            await redis.set(addressKey, JSON.stringify(coordinates), 'EX', 600);
-        } else {
-            coordinates = JSON.parse(geoData);
-        }
 
-        const [lng, lat] = coordinates;
-        let cachedProducts = await redis.get(productsKey);
-        let products;
-        if (cachedProducts) {
-            products = JSON.parse(cachedProducts);
-        } else {
-            products = await database.findProductNearest(lng, lat, req.body.radius * 1000);
-            if (!products.length) {
-                return res.status(404).json({ error: 'No products found within the specified radius' });
+            const [lng, lat] = coordinates;
+            let products;
+
+            let cachedProducts = await redis.get(productsKey);
+            if (!cachedProducts) {
+                products = await database.findProductNearest(lng, lat, radius * 1000);
+                if (!products.length) {
+                    return res.status(404).json({ error: 'No products found within the specified radius' });
+                }
+                await redis.set(productsKey, JSON.stringify(products), 'EX', 600);
+            } else {
+                products = JSON.parse(cachedProducts);
             }
-            await redis.set(productsKey, JSON.stringify(products), 'EX', 600);
+            if (search) {
+                products = products.filter(product =>
+                    product.product_name.toLowerCase().includes(search) ||
+                    product.description.toLowerCase().includes(search)
+                );
+            }
+
+            return res.json({ products });
         }
-        let cachedObjectsWithGeometry = await redis.get(geometryKey);
-        let objectsWithGeometry;
-        if (cachedObjectsWithGeometry) {
-            objectsWithGeometry = JSON.parse(cachedObjectsWithGeometry);
-        } else {
-            objectsWithGeometry = products.map(obj => {
-                const { lng, lat, product_id, product_name, image_url, description, starting_price, ...rest } = obj;
-                return {
-                    geometry: {
-                        type: "Point",
-                        coordinates: [lng, lat]
-                    },
-                    properties: {
-                        product_id,
-                        product_name,
-                        product_card: `
-                            <div class="center">
-                            <div class="article-card">
-                                <div class="close-btn">&times;</div>
-                                <a href="/product/${product_id}"><div class="content">
-                                <p class="date">$${starting_price}</p>
-                                <p class="title">${product_name}</p>
-                                </div>
-                                <img src="${image_url}" alt="article-cover"/>
-                            </div></a>
-                            </div>`
-                    }
-                };
-            });
-            await redis.set(geometryKey, JSON.stringify(objectsWithGeometry), 'EX', 600);
+        if (search) {
+            let cachedSearchProducts = await redis.get(searchKey);
+            let products;
+
+            if (!cachedSearchProducts) {
+                products = await database.FindAllProduct();
+                products = products.filter(product =>
+                    product.product_name.toLowerCase().includes(search) ||
+                    product.description.toLowerCase().includes(search)
+                );
+
+                await redis.set(searchKey, JSON.stringify(products), 'EX', 300);
+            } else {
+                products = JSON.parse(cachedSearchProducts);
+            }
+
+            return res.json({ products });
         }
-        res.json({ objectsWithGeometry });
+        return res.status(400).json({ error: 'Invalid request' });
     } catch (error) {
         console.error('Error fetching geocode or products:', error);
         res.status(500).json({ error: 'Something went wrong, please try again' });
@@ -278,6 +251,16 @@ app.get('/product/new', requireLogin, checkFarmer, catchAsync(async (req, res) =
     res.render('product/new', { mspset, loc });
 }))
 
+app.get('/user/machinery',requireLogin,checkMerchant,catchAsync(async(req,res)=>{
+    const merchantId = req.session.user_id;
+    try {
+        const machineryRows = await database.findMachineryForMerchant(merchantId);
+        res.render('user/machinery', { machinery: machineryRows });
+    } catch (err) {
+        console.error('Error fetching machinery:', err);
+        res.status(500).send('Error fetching machinery');
+    }
+}))
 app.get(`/user/soldproducts`, requireLogin, checkFarmer, catchAsync(async (req, res) => {
     const soldProducts = await database.findSoldProduct(req.session.user_id);
     console.log(soldProducts);
@@ -461,8 +444,30 @@ app.get('/verify-email', catchAsync(async (req, res) => {
     req.flash('success', 'Your email has been verified. You can now log in.');
     return res.redirect('/login');
 }));
+app.get('/user/orders', requireLogin, catchAsync(async (req, res) => {
+    // Logic to fetch orders for the logged-in user
+    try {
+        const userId = req.session.user_id; // Retrieve user ID from session
+        const orders = await database.findOrdersByUserId(userId);
 
-
+        // Render orders view with orders data
+        res.render('user/orders', { orders });
+    } catch (error) {
+        console.error('Error fetching user orders:', error);
+        res.status(500).send('Error fetching user orders');
+    }
+}));
+app.get('/user/order/:orderId/machinery', requireLogin, catchAsync(async (req, res) => {
+    const { orderId } = req.params;
+    try {
+        const machinery = await database.findMachineryByOrderId(orderId);
+        console.log(machinery);
+        res.render('user/order', { machinery });
+    } catch (error) {
+        console.error(`Error fetching machinery for order ${orderId}:`, error);
+        res.status(500).send('Error fetching machinery');
+    }
+}));
 app.get('/user/:id', requireLogin, catchAsync(async (req, res) => {
     const { id } = req.params;
     const user = await database.FindUserById(id);
@@ -515,6 +520,25 @@ app.get('/machinery', catchAsync(async (req, res) => {
     res.render('machinery/all', { machinerys, currentPage });
 }))
 
+app.put('/machinery/:machinery_id', async (req, res, next) => {
+    try {
+        console.log(req.params,req.body);
+        const { machinery_id } = req.params;
+        const { field, value } = req.body;
+        if (!field || !value) {
+            return res.status(400).send('Field and value are required');
+        }
+        await database.updateMachineryField(machinery_id, field, value);
+        const updatedMachinery = await database.getMachineryById(machinery_id);
+        if (!updatedMachinery) {
+            return res.status(404).send('Machinery not found after update');
+        }
+        res.json(updatedMachinery);
+    } catch (err) {
+        next(err); 
+    }
+});
+
 
 app.get('/machinery/new', requireLogin, checkMerchant, (req, res) => {
     res.render('machinery/new');
@@ -560,19 +584,90 @@ app.delete('/machinery/:mach_id/review/:rev_id', requireLogin, catchAsync(async 
     res.redirect(`/machinery/${req.params.mach_id}`);
 }))
 
+app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
+    const { delivery_address } = req.body;
+    const userId = req.session.user_id;
+    
+    console.log("Processing payment");
 
+    try {
+        const cartId = await database.FindCart(userId);
+        const cartItems = await database.FindCartItems(cartId);
+
+        // Debug logging to check cart items and calculations
+        console.log("Cart Items:", cartItems);
+        
+        // Calculate total amount
+        let totalAmount = 0;
+        for (const item of cartItems) {
+            const price = parseFloat(item.mach_price); // Convert string price to number
+            totalAmount += price * item.quantity;
+        }
+        console.log("Total Amount:", totalAmount);
+
+        const orderId = await database.createOrder(userId, totalAmount, delivery_address);
+
+        for (const item of cartItems) {
+            await database.addSoldMachinery(orderId, item.mach_id, item.seller_id, userId, parseFloat(item.mach_price));
+            await database.removeCartItem(item.cart_item_id);
+        }
+
+        await database.clearCart(userId);
+
+        console.log(`Order ${orderId} processed successfully`);
+        res.status(200).send(`Order ${orderId} processed successfully`);
+    } catch (error) {
+        console.error('Error processing payment:', error);
+        res.status(500).send('Error processing payment');
+    }
+}));
 app.post('/machinery/:id/cart', requireLogin, catchAsync(async (req, res) => {
-    const cart_id = await database.FindCart(req.session.user_id);
+    console.log("add machinery");
+    const catch_cartId = await redis.get(`${req.session.user_id}#cart`);
+    if (!catch_cartId) {
+        console.log("cache miss");
+        var cart_id = await database.FindCart(req.session.user_id);
+        await redis.set(`${req.session.user_id}#cart`, JSON.stringify(cart_id),"EX",600);
+    } else {
+        console.log("cache hit");
+        var cart_id = JSON.parse(catch_cartId);
+        console.log("cart id =", cart_id);
+    }
+    if(!await database.updateMachinery(req.params.id,req.body.quantity)){
+        req.flash('error',`we don't have ${req.body.quantity} in stock`);
+        return res.redirect(`/machinery/${req.params.id}`);
+    }
     const insert_id = await database.addCartItem(cart_id, req.params.id, req.body.quantity);
     if (insert_id) {
         req.flash('success', 'Item Added to your Cart');
-    }
-    else {
+    } else {
         req.flash('error', 'Item Out Of Stock');
     }
     res.redirect(`/machinery/${req.params.id}`);
+}));
+app.delete('/cart/:mach_id',requireLogin,catchAsync(async(req,res)=>{
+    try {
+        const catch_cartId = await redis.get(`${req.session.user_id}#cart`);
+        if (!catch_cartId) {
+            console.log("cache miss");
+            var cart_id = await database.FindCart(req.session.user_id);
+            await redis.set(`${req.session.user_id}#cart`, JSON.stringify(cart_id),"EX",600);
+        } else {
+            console.log("cache hit");
+            var cart_id = JSON.parse(catch_cartId);
+        }
+        await database.removeCartItem(cart_id,req.params.mach_id);
+        res.status(200).json({
+            no_of_item:1,
+            deleted:"success"
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            status:"transation failed"
+        });
+    }
 }))
-
 
 app.get('/blogs', catchAsync(async (req, res) => {
     const posts = await database.FindAllBlog();
@@ -610,9 +705,19 @@ app.post('/blogs/:blog_id/comment', requireLogin, catchAsync(async (req, res) =>
     res.redirect('back');
 }))
 
-app.get('/payment', requireLogin, catchAsync((req, res) => {
-    res.render('payment/pay');
-}))
+app.get('/payment', (req, res, next) => {
+    if(req.query.for=="cart"){
+        const cart=0;
+    }
+    res.render('payment/pay', { }, (err, html) => {
+        if (err) {
+            next(err);
+        } else {
+            res.send(html);
+        }
+    });
+});
+
 
 
 

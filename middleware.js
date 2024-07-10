@@ -105,6 +105,7 @@ module.exports.validMapSearch=(req,res,next)=>{
     const {error}=searchMapSchema.validate(req.body);
     if(error){
         console.log('error detected');
+        console.log('error',error.details[0].message);
         req.flash('error',error.details[0].message);
         res.redirect(`/product/map`);
     }else{

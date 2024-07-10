@@ -225,18 +225,23 @@ module.exports.userSchema = Joi.object({
   })
 });
 
-module.exports.searchMapSchema=Joi.object({
-  address:stringSchema.min(3).max(26).required().messages({
-    'any.required':'enter a search address to begin',
-    'string.max': 'address must not exceed 26 characters',
-    'string.min': 'address must not be less than 3 characters'
+module.exports.searchMapSchema = Joi.object({
+  search: stringSchema.allow(null).allow('').max(26).messages({
+    'any.required': 'Enter a search address to begin',
+    'string.max': 'Search must not exceed 26 characters',
+    'string.min': 'Search must not be less than 3 characters'
   }),
-  radius:Joi.number().min(0.50).max(15000).positive().integer().required().messages({
-    'any.required':'requires a search parameter',
-    'number.base': 'radius must be a number',
-    'number.min':'must be larger',
-    'number.max':'too large search parameter',
-    'number.integer': 'radius must be a integer',
-    'number.positive': 'radius must be a positive'
+  address: stringSchema.allow(null).allow('').min(3).max(26).messages({
+    'any.required': 'Enter a search address to begin',
+    'string.max': 'Address must not exceed 26 characters',
+    'string.min': 'Address must not be less than 3 characters'
+  }),
+  radius: Joi.number().allow(null).max(10000).positive().messages({
+    'any.required': 'Requires a search parameter',
+    'number.base': 'Radius must be a number',
+    'number.min': 'Radius must be larger',
+    'number.max': 'Radius is too large',
+    'number.integer': 'Radius must be an integer',
+    'number.positive': 'Radius must be positive'
   })
-});
+}); 

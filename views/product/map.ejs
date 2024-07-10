@@ -1,74 +1,82 @@
 <% layout('layout/boilerplate') %>
-    <form id="searchForm" action="/product/map/data" method="post" class="form-inline mb-3 form-validation" novalidate>
-        <div class="row g-2 align-items-center">
-            <div class="col-auto">
-                <input type="text" name="address" id="address" class="form-control" placeholder="Enter address"
-                    aria-describedby="addressHelp" required />
-            </div>
-            <div class="col-auto">
-                <input type="number" name="radius" id="radius" class="form-control" placeholder="radius of search"
-                    aria-describedby="radiusHelp" required />
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-outline-success">Submit</button>
-                <button type="button" id="clearBtn" class="btn btn-outline-primary ms-2">Clear</button>
-            </div>
+<form id="searchForm" class="form-inline mb-3 form-validation" novalidate>
+    <div class="row g-2 align-items-center">
+        <div class="col-auto d-none d-md-block">
+            <input type="text" name="address" id="address" class="form-control" placeholder="Enter address"
+                aria-describedby="addressHelp" required />
         </div>
-    </form>
-    <a id="viewMapBtn" class="btn btn float-btn center" href="/product">View List 📜</a>
-    <div id="cluster-map"
-        style="height: 500px; width: 100%; background-origin: padding-box; border-radius: 100px; box-shadow: rgba(0, 0, 0, 0.381);">
+        <div class="col-auto d-none d-md-block">
+            <input type="number" name="radius" id="radius" class="form-control small-radius" placeholder="Radius"
+                aria-describedby="radiusHelp" required />
+        </div>
+        <div class="col-auto">
+            <input type="text" name="search" id="search" class="form-control" placeholder="Search"
+                aria-describedby="searchHelp" required />
+        </div>
+        <div class="col-auto d-none d-md-block">
+            <button type="button" id="clearBtn" class="btn btn-outline-primary ms-2">Clear</button>
+        </div>
     </div>
+</form>
+<a id="viewMapBtn" class="btn btn float-btn center" href="/product">View List 📜</a>
+<div id="cluster-map">
+</div>
 
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
-    <link rel="stylesheet" href="/stylesheets/custom-map.css">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script>
-        const mapToken = '<%- process.env.MAPBOX_TOKEN %>';
-        document.addEventListener('DOMContentLoaded', async (event) => {
-            try {
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+<link rel="stylesheet" href="/stylesheets/custom-map.css">
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    const mapToken = '<%- process.env.MAPBOX_TOKEN %>';
+    document.addEventListener('DOMContentLoaded', async (event) => {
+        try {
+            const response = await axios.get('/product/map/data');
+            const data = response.data;
+            updateMap(data);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            setTimeout(async () => {
                 const response = await axios.get('/product/map/data');
                 const data = response.data;
-                console.log(data);
                 updateMap(data);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                setTimeout(async () => {
-                    const response = await axios.get('/product/map/data');
-                    const data = response.data;
-                    console.log(data);
-                    updateMap(data);
-                }, 3000);
-            }
-        });
-    </script>
-    <style>
-        #searchForm {
-            position: fixed;
-            top: 125px;
-            left: 20%;
-            z-index: 9999;
-            background: rgba(255, 255, 255, 0.004);
-            padding: 10px;
-            border-radius: 25px;
-            backdrop-filter: blur(5px);
+            }, 3000);
         }
+    });
+</script>
+<style>
+    #searchForm {
+        position: fixed;
+        top: 120px;
+        left: 20%;
+        z-index: 9999;
+        border-radius: 25px;
+        backdrop-filter: blur(1px);
+    }
 
-        .form-inline .form-label {
-            margin-right: 10px;
-        }
+    .form-inline .form-label {
+        margin-right: 10px;
+    }
 
-        .form-inline .form-control {
-            margin-right: 10px;
-            display: inline-block;
-            width: auto;
-        }
+    .form-inline .form-control {
+        margin-right: 10px;
+        display: inline-block;
+        width: auto;
+    }
 
-        .form-inline .btn {
-            margin-top: 0;
-        }
-    </style>
-    <script src="/javascript/clusterMap.js"></script>
+    .form-inline .btn {
+        margin-top: 0;
+    }
 
-    <link rel="stylesheet" href="/stylesheets/floatbtn.css">
-    <link rel="stylesheet" href="/stylesheets/card-map.css">
+    #cluster-map {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 100%;
+        box-shadow: rgba(0, 0, 0, 0.381);
+    }
+</style>
+
+<script src="/javascript/clusterMap.js"></script>
+
+<link rel="stylesheet" href="/stylesheets/floatbtn.css">
+<link rel="stylesheet" href="/stylesheets/card-map.css">

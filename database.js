@@ -40,7 +40,7 @@ VALUES (?,?,?,?);
 
 module.exports.deleteUser = async (id) => {
     const [rows] = await pool.query(`DELETE FROM users
-    WHERE user_id =${id};`);
+    WHERE user_id =${id};`);R
     console.log(rows);
 }
 
@@ -260,11 +260,44 @@ module.exports.allMachinery = async () => {
     const [rows] = await pool.query(`SELECT * FROM machinery`);
     return rows;
 }
-
+module.exports.findMachineryForMerchant=async(id)=>{
+    const [machineryRows] = await pool.query('SELECT * FROM machinery WHERE seller_id = ?', [id]);
+    return machineryRows;
+}
 module.exports.findOneMachinery = async (id) => {
     const [[rows]] = await pool.query(`SELECT * FROM machinery where machinery_id=${id} `)
     return rows;
 }
+module.exports.updateMachineryField = async (machineryId, field, value) => {
+    let sql = '';
+    let params = [];
+
+    switch (field) {
+        case 'name':
+            sql = 'UPDATE machinery SET machinery_name = ? WHERE machinery_id = ?';
+            params = [value, machineryId];
+            break;
+        case 'description':
+            sql = 'UPDATE machinery SET description = ? WHERE machinery_id = ?';
+            params = [value, machineryId];
+            break;
+        case 'quantity':
+            sql = 'UPDATE machinery SET quantity = ? WHERE machinery_id = ?';
+            params = [value, machineryId];
+            break;
+        case 'state':
+            sql = 'UPDATE machinery SET state = ? WHERE machinery_id = ?';
+            params = [value, machineryId];
+            break;
+        case 'price':
+            sql = 'UPDATE machinery SET price = ? WHERE machinery_id = ?';
+            params = [value, machineryId];
+            break;
+        default:
+            throw new Error('Invalid field');
+    }
+    await pool.query(sql, params);
+};
 module.exports.addMachinary = async (mach) => {
     const { seller_id, machinery_name, description, quantity, state, price, image_url } = mach;
     const [rows] = await pool.query(`
@@ -273,6 +306,28 @@ module.exports.addMachinary = async (mach) => {
     `, [seller_id, image_url, machinery_name, description, quantity, state, price]);
     return rows.insertId;
 }
+module.exports.updateMachinery = async (id, qty) => {
+    try {
+        const [result] = await pool.query(`
+            UPDATE machinery
+            SET quantity = CASE
+                WHEN quantity - ? >= 0 THEN quantity - ?
+                ELSE quantity
+            END
+            WHERE machinery_id = ? AND (quantity - ? >= 0);
+        `, [qty, qty, id, qty]);
+
+        // Check if any rows were updated
+        if (result.changedRows > 0) {
+            return true; // Updated successfully
+        } else {
+            return false; // No update made (quantity would go negative)
+        }
+    } catch (error) {
+        console.error('Error updating machinery:', error);
+        return false;
+    }
+};
 module.exports.deleteMachinery = async (id) => {
     await pool.query(`DELETE FROM machinery where machinery_id=${id}`);
 }
@@ -293,6 +348,57 @@ where machinery_id=${id};`);
     return rows;
 }
 
+module.exports.createOrder= async (userId, totalAmount, deliveryAddress) => {
+    const query = `
+        INSERT INTO orders (user_id, total_amount, payment_method, payment_status, shipping_address)
+        VALUES (?, ?, 'Pay on Delivery', 'pending', ?)
+    `;
+    const [result] = await pool.query(query, [userId, totalAmount, deliveryAddress]);
+    return result.insertId;
+},
+module.exports.findMachineryByOrderId = async (orderId) => {
+    try {
+        const query = `
+            SELECT m.machinery_name,
+                   SUM(sm.sale_price) AS total_price_bought
+            FROM machinery m
+            JOIN sold_machinery sm ON m.machinery_id = sm.machinery_id
+            WHERE sm.order_id = ?
+            GROUP BY m.machinery_name`;
+        const [machinery] = await pool.query(query, [orderId]);
+        return machinery;
+    } catch (error) {
+        throw error;
+    }
+};
+
+module.exports.findOrdersByUserId=async(userId)=>{
+    const query = `
+        SELECT * 
+        FROM orders 
+        WHERE user_id = ? 
+        ORDER BY order_date DESC`;
+
+    const [rows, fields] = await pool.query(query, [userId]);
+    return rows;
+}
+module.exports.addSoldMachinery= async (orderId, machineryId, sellerId, buyerId, salePrice) => {
+    const query = `
+        INSERT INTO sold_machinery (order_id, machinery_id, seller_id, buyer_id, sale_price)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    await pool.query(query, [orderId, machineryId, sellerId, buyerId, salePrice]);
+},
+
+module.exports.removeCartItem= async (cartItemId) => {
+    const query = `DELETE FROM cart_item WHERE cart_item_id = ?`;
+    await pool.query(query, [cartItemId]);
+},
+
+module.exports.clearCart=async (userId) => {
+    const query = `DELETE FROM cart WHERE user_id = ?`;
+    await pool.query(query, [userId]);
+}
 
 module.exports.addReview = async (req) => {
     const insertId = await pool.query(`INSERT INTO machinery_reviews(machinery_id,user_id,rating,comment) VALUES(?,?,?,?)`, [req.params.id, req.session.user_id, req.body.rating, req.body.comment]);
@@ -330,15 +436,45 @@ module.exports.FindCartItems = async (id) => {
 
 
 module.exports.addCartItem = async (cart_id, mach_id, qty) => {
-    var [row] = await pool.query(`SELECT * FROM cart_item WHERE cart_id=${cart_id} and mach_id=${mach_id};`);
-    if (row.length == 0) {
-        [row] = await pool.query(`INSERT INTO cart_item (cart_id, mach_id, quantity)
-    VALUES (?, ?, ?);`, [cart_id, mach_id, qty]);
-    } else {
-        [row] = await pool.query(`UPDATE cart_item
-        SET quantity = ?
-        WHERE cart_id = ? AND mach_id = ?;
-         `, [qty, cart_id, mach_id]);
+    try {
+        const [rows] = await pool.query(`
+            SELECT * FROM cart_item WHERE cart_id = ? AND mach_id = ?;
+        `, [cart_id, mach_id]);
+
+        if (rows.length === 0) {
+            await pool.query(`
+                INSERT INTO cart_item (cart_id, mach_id, quantity)
+                VALUES (?, ?, ?);
+            `, [cart_id, mach_id, qty]);
+        } else {
+            await pool.query(`
+                UPDATE cart_item
+                SET quantity = quantity + ?
+                WHERE cart_id = ? AND mach_id = ?;
+            `, [qty, cart_id, mach_id]);
+        }
+
+        return true; // Successfully added or updated cart item
+    } catch (error) {
+        console.error('Error adding/updating cart item:', error);
+        return false; // Return false on error
+    }
+};
+module.exports.removeCartItem = async (cart_id, mach_id) => {
+    const [existingCartItem] = await pool.query(`SELECT * FROM cart_item WHERE cart_id = ? AND mach_id = ?;`, [cart_id, mach_id]);
+    if (existingCartItem.length === 0) {
+        return false; 
+    }
+    const quantityInCart = existingCartItem[0].quantity;
+    await pool.query(`DELETE FROM cart_item WHERE cart_id = ? AND mach_id = ?;`, [cart_id, mach_id]);
+    const [machineryUpdateResult] = await pool.query(`
+        UPDATE machinery                                               
+        SET quantity = quantity + ? 
+        WHERE machinery_id = ? AND quantity >= ?;`,
+        [quantityInCart, mach_id, quantityInCart]);
+
+    if (machineryUpdateResult.affectedRows === 0) {
+        return false;
     }
     return true;
 }

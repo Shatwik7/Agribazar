@@ -118,3 +118,30 @@ CREATE TABLE crops (
     price DECIMAL(10, 2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'processing', 'completed', 'cancelled') DEFAULT 'pending',
+    payment_method VARCHAR(100),
+    payment_status ENUM('pending', 'paid', 'failed'),
+    shipping_address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE sold_machinery (
+    sold_machinery_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT,
+    machinery_id INT,
+    seller_id INT,
+    buyer_id INT,
+    sale_price DECIMAL(10, 2),
+    sale_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (machinery_id) REFERENCES machinery(machinery_id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (buyer_id) REFERENCES users(user_id) ON DELETE CASCADE
+);

@@ -7,32 +7,82 @@ const map = new mapboxgl.Map({
     zoom: 3
 });
 
-map.addControl(new mapboxgl.NavigationControl());
+map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
 let sourceAdded = false;
+function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+document.getElementById('address').addEventListener('input', debounce(handleInput, 500));
+document.getElementById('radius').addEventListener('input', debounce(handleInput, 500));
+document.getElementById('search').addEventListener('input', debounce(handleInput, 500));
 
-document.getElementById('searchForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
+async function handleInput() {
     const address = document.getElementById('address').value;
-    const radius = document.getElementById('radius').value;
+    const radius = document.getElementById('radius').value||null;
+    const search = document.getElementById('search').value;
 
+    if ((address && !radius) || (!address && radius)) {
+        console.warn('Both address and radius must be provided together.');
+        return;
+    }
     try {
-        const response = await axios.post('/product/map/data', { address, radius });
-
+        const response = await axios.post('/product/map/data', { address, radius, search });
         const data = response.data;
-        updateMap(data.objectsWithGeometry);
+        if(response.data.length===0){
+            return;
+        }
+        updateMap(data.products);
     } catch (error) {
         console.error('Error fetching data:', error);
-        alert(error.response?.data?.error || 'Failed to fetch data. Please try again.');
+    }
+}
+
+
+document.getElementById('clearBtn').addEventListener('click', async() => {
+    document.getElementById('searchForm').reset();
+    try {
+        const response = await axios.get('/product/map/data');
+        const data = response.data;
+        updateMap(data);
+    } catch (error) {
+        console.error('Error fetching data:', error);
     }
 });
 
-document.getElementById('clearBtn').addEventListener('click', () => {
-    document.getElementById('searchForm').reset();
-});
-
-function updateMap(objectsWithGeometry) {
+function updateMap(products) {
+    const objectsWithGeometry = products.map(obj => {
+        const { lng, lat, product_id, product_name, image_url, description, starting_price, ...rest } = obj;
+        var imageOtimized=image_url;
+        if(!image_url.includes('/upload/w_500,h_400/q_auto/f_auto')){
+            imageOtimized=image_url.replace('/upload', '/upload/w_500,h_400/q_auto/f_auto');
+        }
+        return {
+            geometry: {
+                type: "Point",
+                coordinates: [lng, lat]
+            },
+            properties: {
+                product_id,
+                product_name,
+                product_card: `
+                    <div class="center">
+                    <div class="article-card">
+                        <div class="close-btn">&times;</div>
+                        <a href="/product/${product_id}"><div class="content">
+                        <p class="date">$${starting_price}</p>
+                        <p class="title">${product_name}</p>
+                        </div>
+                        <img src="${imageOtimized}" alt="article-cover"/>
+                    </div></a>
+                    </div>`
+            }
+        };
+    });
     const geojson = { type: 'FeatureCollection', features: objectsWithGeometry };
 
     if (sourceAdded) {

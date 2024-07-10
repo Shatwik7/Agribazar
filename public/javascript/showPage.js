@@ -10,8 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const loadingElement = document.getElementById('loading');
         const productContainer = document.querySelector('.products-container');
         const paginationContainer = document.querySelector('.pagination');
-    
-        // Show loading indicator and clear previous content
+
         loadingElement.style.display = 'block';
         productContainer.innerHTML = '';
         paginationContainer.innerHTML = '';
@@ -21,15 +20,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             products = data.products;
             totalPages = data.totalPages;
-    
-            // Render products and pagination
             renderProducts();
             renderPagination();
         } catch (error) {
             console.error('Error fetching products:', error);
             productContainer.innerHTML = '<p>Error loading products.</p>';
         } finally {
-            // Hide loading indicator
             loadingElement.style.display = 'none';
         }
     }
@@ -62,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const paginationContainer = document.querySelector('.pagination');
         paginationContainer.innerHTML = '';
     
-        const maxVisiblePages = 5; // Maximum number of page links to show
+        const maxVisiblePages = 5; 
     
         if (currentPage > 1) {
             paginationContainer.innerHTML += `
@@ -74,16 +70,13 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
         }
     
-        // Determine the range of pages to display based on current page
         let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
         let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
     
-        // Adjust startPage and endPage if nearing the start or end of the pagination
         if (endPage - startPage + 1 < maxVisiblePages) {
             startPage = Math.max(1, endPage - maxVisiblePages + 1);
         }
     
-        // Render page links within the determined range
         for (let i = startPage; i <= endPage; i++) {
             paginationContainer.innerHTML += `
                 <li class="page-item ${currentPage === i ? 'active' : ''}">
@@ -126,12 +119,17 @@ document.addEventListener('DOMContentLoaded', function () {
             fetchProducts(sortOption, searchInput.value, 1);
         });
     });
-
-    searchInput.addEventListener('input', function (event) {
-    fetchProducts('', searchInput.value, 1);
-});
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    searchInput.addEventListener('input', debounce(function (event) {
+        fetchProducts('', searchInput.value, 1);
+    }, 500));
     fetchProducts();
-
     const urlParams = new URLSearchParams(window.location.search);
     const prevSearchQuery = urlParams.get('search');
     if (prevSearchQuery) {

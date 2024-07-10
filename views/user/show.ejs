@@ -44,12 +44,24 @@
                             <i class="bi bi-plus-circle"></i>
                         </a>
                         <% } %>
+                        <% if(user.user_type==="merchant"){%>
+                            <a href="/user/machinery" class="btn-action" title="Your Stock">
+                                <i class="bi bi-boxes"></i>
+                            </a>
+                            <% }else if(user.user_type==='farmer'){%>
                             <a href="/user/products" class="btn-action" title="Your products on Live Auction">
                                 <i class="bi bi-view-list"></i>
                             </a>
+                            <% }%>
                             <a href="/user/won" class="btn-action" title="Auctions won">
                                 <i class="bi bi-list"></i>
                             </a>
+                            
+                </div>
+                <div class="action-btns extra-btns">
+                    <a href="/user/orders" class="btn-action" title="Orders">
+                        <i class="bi bi-clipboard2-check-fill"></i>
+                    </a>
                 </div>
             </div>
         </div>

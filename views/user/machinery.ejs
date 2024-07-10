@@ -1,0 +1,144 @@
+<% layout('layout/boilerplate') %>
+<div class="container mt-5">
+    <h2 class="mb-4">Machinery List</h2>
+    <p class="lead mb-4">Double-click on a value to update</p>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>View</th>
+                    <th>Machinery Name</th>
+                    <th>Image</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>State</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% machinery.forEach(machinery => { %>
+                    <tr>
+                        <td>
+                            <a href="/machinery/<%= machinery.machinery_id %>" class="btn btn-success btn-sm">View</a>
+                        </td>
+                        <td class="editable-field" data-field="name" data-machinery-id="<%= machinery.machinery_id %>">
+                            <%= machinery.machinery_name %>
+                        </td>
+                        <td>
+                            <img src="<%= machinery.image_url %>" alt="Machinery Image" class="img-fluid product-img">
+                        </td>
+                        <td class="editable-field" data-field="description" data-machinery-id="<%= machinery.machinery_id %>">
+                            <%= machinery.description %>
+                        </td>
+                        <td class="editable-field" data-field="quantity" data-machinery-id="<%= machinery.machinery_id %>">
+                            <span class="editable-quantity"><%= machinery.quantity %></span>
+                        </td>
+                        <td class="editable-field" data-field="state" data-machinery-id="<%= machinery.machinery_id %>">
+                            <%= machinery.state %>
+                        </td>
+                        <td class="editable-field" data-field="price" data-machinery-id="<%= machinery.machinery_id %>">
+                            <%= machinery.price %>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to handle updating field via Axios
+        function updateField(fieldType, machineryId, newValue) {
+            console.log('Updating', fieldType, 'for machinery ID', machineryId, 'with value:', newValue);
+            axios.put('/machinery/' + machineryId, {
+                field: fieldType,
+                value: newValue
+            })
+            .then(function(response) {
+                console.log('Update successful:', response.data);
+                // Update the table cell with the new value after successful update
+                switch (fieldType) {
+                    case 'name':
+                    case 'description':
+                    case 'state':
+                        document.querySelector('.editable-field[data-field="' + fieldType + '"][data-machinery-id="' + machineryId + '"]').innerText = newValue;
+                        break;
+                    case 'price':
+                        document.querySelector('.editable-field[data-field="' + fieldType + '"][data-machinery-id="' + machineryId + '"]').innerText = '$ ' + newValue;
+                        break;
+                    default:
+                        break;
+                }
+            })
+            .catch(function(error) {
+                console.error('Error updating ' + fieldType + ':', error);
+                // Handle error if needed
+            });
+        }
+
+        // Handle double-click on editable fields
+        document.querySelectorAll('.editable-field').forEach(function(field) {
+            field.addEventListener('dblclick', function() {
+                var fieldType = this.getAttribute('data-field');
+                var machineryId = this.getAttribute('data-machinery-id');
+                var currentValue = this.innerText.trim();
+
+                // Replace content with an input field for editing
+                switch (fieldType) {
+                    case 'name':
+                    case 'description':
+                        this.innerHTML = '<input type="text" class="form-control" value="' + currentValue + '" />';
+                        break;
+                    case 'price':
+                        // Remove dollar sign before editing price
+                        currentValue = currentValue.replace('$', '').trim();
+                        this.innerHTML = '<input type="number" step="0.01" class="form-control" min=1 max=999999 value="' + currentValue + '" />';
+                        break;
+                    case 'state':
+                        this.innerHTML = `<select class="form-control">
+                                        <option value="used">used</option>
+                                        <option value="new">new</option>
+                                        </select>`
+                    default:
+                        break;
+                }
+            });
+        });
+
+        // Handle editing input fields and sending updates on Enter key press
+        document.querySelectorAll('.editable-field').forEach(function(field) {
+            field.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    var fieldType = this.getAttribute('data-field');
+                    var machineryId = this.getAttribute('data-machinery-id');
+                    var newValue = this.querySelector('input').value.trim();
+                    console.log('Enter key pressed for', fieldType, 'field with value:', newValue);
+                    updateField(fieldType, machineryId, newValue);
+                }
+            });
+        });
+
+        // Handle inline editing for quantity (special case)
+        document.querySelectorAll('.editable-quantity').forEach(function(quantityField) {
+            quantityField.addEventListener('dblclick', function() {
+                var machineryId = this.closest('tr').querySelector('.editable-field[data-field="quantity"]').getAttribute('data-machinery-id');
+                var currentQuantity = this.innerText.trim();
+
+                // Replace span with input for editing
+                this.innerHTML = '<input type="number" class="form-control" value="' + currentQuantity + '" />';
+            });
+        });
+
+        // Handle updating quantity via Axios (special case)
+        document.querySelectorAll('.editable-quantity input').forEach(function(quantityInput) {
+            quantityInput.addEventListener('change', function() {
+                var machineryId = this.getAttribute('data-machinery-id');
+                var newQuantity = this.value.trim();
+                console.log('Quantity updated to:', newQuantity);
+                updateField('quantity', machineryId, newQuantity);
+            });
+        });
+    });
+</script>

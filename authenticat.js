@@ -2,8 +2,8 @@ const bcrypt=require('bcrypt');
 
 
 module.exports.hashPassword=async(pw)=>{
-    const salt=await bcrypt.genSalt(12);     //salt rounds
-    const hash=await bcrypt.hash(pw,salt);   // hashing the password with the salt
+    const salt=await bcrypt.genSalt(12);  
+    const hash=await bcrypt.hash(pw,salt);  
     return hash;                                                 
 }
 

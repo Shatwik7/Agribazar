@@ -1,70 +1,103 @@
 <% layout('layout/boilerplate') %>
 
-    <div class="container">
-        <h1 class="mt-5 mb-4">Shopping Cart</h1>
-        <table class="table table-striped table-bordered">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Items</th>
-                    <th>Price per Unit</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
+<div class="container">
+    <h1 class="mt-5 mb-4">Shopping Cart</h1>
+    <table class="table table-striped table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>Items</th>
+                <th>Price per Unit</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="cart-items">
+            <% items.forEach(item => { %>
+                <tr id="item-<%= item.mach_id %>">
+                    <td><%= item.machinery_name %></td>
+                    <td><%= item.mach_price %></td>
+                    <td><%= item.quantity %></td>
+                    <td><%= item.quantity * item.mach_price %></td>
+                    <td>
+                        <button class="btn btn-danger btn-remove" data-mach-id="<%= item.mach_id %>">Remove</button>
+                    </td>
                 </tr>
-            </thead>
-            <tbody id="cart-items">
-                <% items.forEach(item=> {%>
-                    <tr>
-                        <td>
-                            <%=item.machinery_name%>
-                        </td>
-                        <td>
-                            <%=item.mach_price %>
-                        </td>
-                        <td>
-                            <%= item.quantity%>
-                        </td>
-                        <td>
-                            <%=item.quantity*item.mach_price%>
-                        </td>
-                    </tr>
-                    <% }); %>
-            </tbody>
-        </table>
-        <div id="total" class="mt-4 text-right">
-            <% var sum=0; items.forEach(item=> { sum += item.quantity * item.mach_price; }) %>
-                <h3>TOTAL: <%= sum %>
-                </h3>
-                <a class="btn btn-primary mt-2" href="/payment" role="button">PAY</a>
-        </div>
+            <% }); %>
+        </tbody>
+    </table>
+    <div id="total" class="mt-4 text-right">
+        <% var sum = 0; items.forEach(item => { sum += item.quantity * item.mach_price; }) %>
+        <h3>TOTAL: <%= sum %></h3>
+        <a class="btn btn-primary mt-2" href="/payment" role="button">PAY</a>
     </div>
+</div>
 
-    <style>
-        .table {
-            margin-top: 20px;
-            border: 1px solid #dee2e6;
-        }
+<style>
+    .table {
+        margin-top: 20px;
+        border: 1px solid #dee2e6;
+    }
 
-        .thead-dark th {
-            background-color: #343a40;
-            color: #fff;
-        }
+    .thead-dark th {
+        background-color: #343a40;
+        color: #fff;
+    }
 
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
 
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #004085;
-        }
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+    }
 
-        tbody tr:hover {
-            background-color: #f1f1f1;
-        }
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
 
-        #total h3 {
-            display: inline-block;
-            margin-right: 20px;
-        }
-    </style>
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+
+    tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    #total h3 {
+        display: inline-block;
+        margin-right: 20px;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const removeButtons = document.querySelectorAll('.btn-remove');
+        removeButtons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const cartId = button.getAttribute('data-cart-id');
+                const machId = button.getAttribute('data-mach-id');
+                try {
+                    const response = await fetch(`/cart/${machId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        document.getElementById(`item-${machId}`).remove();
+                    } else {
+                        console.error('Failed to delete item');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+    });
+</script>

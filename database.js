@@ -40,7 +40,7 @@ VALUES (?,?,?,?);
 
 module.exports.deleteUser = async (id) => {
     const [rows] = await pool.query(`DELETE FROM users
-    WHERE user_id =${id};`);R
+    WHERE user_id =${id};`);
     console.log(rows);
 }
 
@@ -359,12 +359,20 @@ module.exports.createOrder= async (userId, totalAmount, deliveryAddress) => {
 module.exports.findMachineryByOrderId = async (orderId) => {
     try {
         const query = `
-            SELECT m.machinery_name,
-                   SUM(sm.sale_price) AS total_price_bought
-            FROM machinery m
-            JOIN sold_machinery sm ON m.machinery_id = sm.machinery_id
-            WHERE sm.order_id = ?
-            GROUP BY m.machinery_name`;
+            SELECT 
+                m.machinery_name,
+                SUM(sm.quantity) AS total_quantity_bought,
+                sm.sale_price AS per_unit_price,
+                SUM(sm.quantity * sm.sale_price) AS total_price_bought
+            FROM 
+                machinery m
+            JOIN 
+                sold_machinery sm ON m.machinery_id = sm.machinery_id
+            WHERE 
+                sm.order_id = ?
+            GROUP BY 
+                m.machinery_name, sm.sale_price`;
+        
         const [machinery] = await pool.query(query, [orderId]);
         return machinery;
     } catch (error) {
@@ -382,12 +390,12 @@ module.exports.findOrdersByUserId=async(userId)=>{
     const [rows, fields] = await pool.query(query, [userId]);
     return rows;
 }
-module.exports.addSoldMachinery= async (orderId, machineryId, sellerId, buyerId, salePrice) => {
+module.exports.addSoldMachinery= async (orderId, machineryId, sellerId, buyerId, salePrice,qty) => {
     const query = `
-        INSERT INTO sold_machinery (order_id, machinery_id, seller_id, buyer_id, sale_price)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO sold_machinery (order_id, machinery_id, seller_id, buyer_id, sale_price,quantity)
+        VALUES (?, ?, ?, ?, ?,?)
     `;
-    await pool.query(query, [orderId, machineryId, sellerId, buyerId, salePrice]);
+    await pool.query(query, [orderId, machineryId, sellerId, buyerId, salePrice,qty]);
 },
 
 module.exports.removeCartItem= async (cartItemId) => {

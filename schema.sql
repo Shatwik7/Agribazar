@@ -138,6 +138,7 @@ CREATE TABLE sold_machinery (
     machinery_id INT,
     seller_id INT,
     buyer_id INT,
+    quantity INT DEFAULT 0,
     sale_price DECIMAL(10, 2),
     sale_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,

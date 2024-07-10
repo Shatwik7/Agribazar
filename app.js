@@ -91,18 +91,18 @@ app.get('/', (req, res) => {
     res.render('home');
 })
 
-
+//USER COUNT
 app.get('/api/user-count', catchAsync(async (req, res) => {
     const userCount = await database.countUser();
     res.json({ count: userCount });
 }));
-
+//product count
 app.get('/api/product-count', catchAsync(async (req, res) => {
     const productCount = await database.countProduct();
     res.json({ count: productCount });
 }));
 
-
+// get the product data to the frontend ajax call
 app.get('/api/products', async (req, res) => {
     
     const { sort = '', search = '', page = 1, limit = 12 } = req.query;
@@ -121,11 +121,12 @@ app.get('/api/products', async (req, res) => {
     res.json(data);
 });
 
-
+// renders the product from ejs
 app.get('/product', catchAsync(async (req, res) => {
     res.render('product/show');
 }))
 
+//send json data of geoloaction of product to the frontend cluster map
 app.get('/product/map/data', catchAsync(async (req, res) => {
     const acceptHeader = req.headers.accept || "";
     try {
@@ -144,10 +145,14 @@ app.get('/product/map/data', catchAsync(async (req, res) => {
     }
 }));
 
+// product cluster map is render
 app.get('/product/map', catchAsync(async (req, res) => {
     res.render('product/map');
 }));
 
+
+// data is fetch after a search input is give 
+// it send the json data to the frontend cluster map
 app.post('/product/map/data', validMapSearch, catchAsync(async (req, res) => {
     try {
         const search = req.body.search ? req.body.search.toLowerCase() : '';
@@ -221,7 +226,7 @@ app.post('/product/map/data', validMapSearch, catchAsync(async (req, res) => {
 }));
 
 
-
+//regiters product of a peticular user
 app.post('/product', requireLogin, checkFarmer, upload.single('image'), validProduct, catchAsync(async (req, res) => {
     req.body.image_url = req.file.path.replace('/upload', '/upload/w_500,h_400/q_auto/f_auto');
     const insertId = await database.addPoduct(req);
@@ -229,13 +234,14 @@ app.post('/product', requireLogin, checkFarmer, upload.single('image'), validPro
     res.redirect(`/product/${insertId}`);
 }))
 
-
+// places bid on a prioduct
 app.post('/bid/:id', requireLogin, validBid, catchAsync(async (req, res) => {
     console.log(req.body.amount);
     const bid = await database.AddBid(req);
     res.redirect(`/product/${req.params.id}`);
 }))
 
+//renders new product registertion form
 app.get('/product/new', requireLogin, checkFarmer, catchAsync(async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     let loc = await locate(ip);
@@ -251,6 +257,7 @@ app.get('/product/new', requireLogin, checkFarmer, catchAsync(async (req, res) =
     res.render('product/new', { mspset, loc });
 }))
 
+// show the machinery enlisted by the user
 app.get('/user/machinery',requireLogin,checkMerchant,catchAsync(async(req,res)=>{
     const merchantId = req.session.user_id;
     try {
@@ -261,20 +268,27 @@ app.get('/user/machinery',requireLogin,checkMerchant,catchAsync(async(req,res)=>
         res.status(500).send('Error fetching machinery');
     }
 }))
+
+//show the farm products which had been sold to bidders
 app.get(`/user/soldproducts`, requireLogin, checkFarmer, catchAsync(async (req, res) => {
     const soldProducts = await database.findSoldProduct(req.session.user_id);
     console.log(soldProducts);
     res.render('user/sold', { soldProducts });
 }))
 
+// show the farm product auction won by the user
 app.get('/user/won', requireLogin, catchAsync(async (req, res) => {
     const products = await database.productBought(req.session.user_id);
     res.render('user/won', { products });
 }))
+
+// show the farm products been auctioned by the user
 app.get('/user/products', requireLogin, checkFarmer, (async (req, res) => {
     const products = await database.FindAllProductByUser(req.session.user_id);
     res.render('user/products', { products });
 }))
+
+// sell the product to the highest bidder
 app.get('/product/sold/:id', requireLogin, isFarmer, catchAsync(async (req, res) => {
     const product = await database.FindProduct(req.params.id);
     const bids = await database.Bids(req.params.id);
@@ -297,7 +311,7 @@ app.get('/product/sold/:id', requireLogin, isFarmer, catchAsync(async (req, res)
     res.redirect(`/product/${req.params.id}`);
 }))
 
-
+// show the details of the single product and the bids which had been placed
 app.get('/product/:id', requireLogin, catchAsync(async (req, res) => {
     if (req.params.id) {
         const value = parseInt(req.params.id);
@@ -317,6 +331,8 @@ app.get('/product/:id', requireLogin, catchAsync(async (req, res) => {
     }
     res.render('product/bid', { product, bids });
 }))
+
+// send the data of the bids related to the product
 app.get('/product/:id/bids',requireLogin,catchAsync(async(req,res)=>{
     const Id = req.params.id;
     try {
@@ -327,29 +343,25 @@ app.get('/product/:id/bids',requireLogin,catchAsync(async(req,res)=>{
     }
 }))
 
-app.get('/product/:id/edit', requireLogin, isFarmer, catchAsync(async (req, res) => {
-    const crop = await database.mspset();
-    const product = await database.FindProduct(req.params.id);
-    res.render('product/edit', { product, crop });
-}))
 
 
+// deletes the product by the user
 app.delete('/product/:id', requireLogin, isFarmer, catchAsync(async (req, res) => {
     await database.deleteProduct(req.params.id);
     res.redirect('/product');
 }));
 
-
+// uplods the image of the product
 app.put('/product/:id', requireLogin, isFarmer, upload.single('image'), catchAsync(async (req, res) => {
     console.log(req.body, req.file);
 }))
 
-
+// login page is render
 app.get('/login', (req, res) => {
     res.render("user/login");
 })
 
-
+// post the details of the user for login 
 app.post('/user/login',catchAsync(async (req, res) => {
     if(req.session.User){
         return res.redirect('/product')
@@ -386,18 +398,18 @@ app.post('/user/login',catchAsync(async (req, res) => {
     }
 }));
 
-
+// renders the regisert form
 app.get('/register', (req, res) => {
     res.render('user/register');
 })
 
-
+// deletes the session of the user
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/product');
 })
 
-
+// posts the new user info and send a email to validate
 app.post('/user/new', validUser, catchAsync(async (req, res) => {
     try {
         const u = await database.FindUserByEmail(req.body.email);
@@ -423,6 +435,8 @@ app.post('/user/new', validUser, catchAsync(async (req, res) => {
         res.redirect('/register');
     }
 }))
+
+// performs the verification by sumbmition
 app.get('/verify-email', catchAsync(async (req, res) => {
     const token = req.query.token;
     console.log(token);
@@ -444,19 +458,20 @@ app.get('/verify-email', catchAsync(async (req, res) => {
     req.flash('success', 'Your email has been verified. You can now log in.');
     return res.redirect('/login');
 }));
-app.get('/user/orders', requireLogin, catchAsync(async (req, res) => {
-    // Logic to fetch orders for the logged-in user
-    try {
-        const userId = req.session.user_id; // Retrieve user ID from session
-        const orders = await database.findOrdersByUserId(userId);
 
-        // Render orders view with orders data
+// show the orders placed by the user
+app.get('/user/orders', requireLogin, catchAsync(async (req, res) => {
+    try {
+        const userId = req.session.user_id;
+        const orders = await database.findOrdersByUserId(userId);
         res.render('user/orders', { orders });
     } catch (error) {
         console.error('Error fetching user orders:', error);
         res.status(500).send('Error fetching user orders');
     }
 }));
+
+// show the item in that order
 app.get('/user/order/:orderId/machinery', requireLogin, catchAsync(async (req, res) => {
     const { orderId } = req.params;
     try {
@@ -468,22 +483,24 @@ app.get('/user/order/:orderId/machinery', requireLogin, catchAsync(async (req, r
         res.status(500).send('Error fetching machinery');
     }
 }));
+
+// gets the details of the user
 app.get('/user/:id', requireLogin, catchAsync(async (req, res) => {
-    const { id } = req.params;
-    const user = await database.FindUserById(id);
+    const user = await database.FindUserById(req.session.user_id);
     if(!user){
         return res.redirect('/product');
     }
     res.render('user/show', { user });
 }))
 
-
+// deletes the user and all the things associted with it
 app.delete('/user/:id', requireLogin, catchAsync(async (req, res) => {
     await database.deleteUser(req.params.id);
     req.session.destroy();
     res.redirect('/');
 }))
 
+//uploades mew image of the user
 app.put('/user/:id/change-image', upload.single('newProfileImage'), catchAsync(async (req, res) => {
     const userId = req.params.id;
     if (req.file) {
@@ -501,6 +518,8 @@ app.put('/user/:id/change-image', upload.single('newProfileImage'), catchAsync(a
     res.redirect(`/user/${userId}`);
 }));
 
+
+// finds and renders all the machinery 
 app.get('/machinery', catchAsync(async (req, res) => {
     let machinerys = await database.allMachinery();
     const sortOption = req.query.sort;
@@ -519,6 +538,7 @@ app.get('/machinery', catchAsync(async (req, res) => {
     const currentPage = req.query.page ? parseInt(req.query.page) : 1;
     res.render('machinery/all', { machinerys, currentPage });
 }))
+
 
 app.put('/machinery/:machinery_id', async (req, res, next) => {
     try {
@@ -587,20 +607,15 @@ app.delete('/machinery/:mach_id/review/:rev_id', requireLogin, catchAsync(async 
 app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
     const { delivery_address } = req.body;
     const userId = req.session.user_id;
-    
     console.log("Processing payment");
 
     try {
         const cartId = await database.FindCart(userId);
         const cartItems = await database.FindCartItems(cartId);
-
-        // Debug logging to check cart items and calculations
         console.log("Cart Items:", cartItems);
-        
-        // Calculate total amount
         let totalAmount = 0;
         for (const item of cartItems) {
-            const price = parseFloat(item.mach_price); // Convert string price to number
+            const price = parseFloat(item.mach_price);
             totalAmount += price * item.quantity;
         }
         console.log("Total Amount:", totalAmount);
@@ -608,7 +623,7 @@ app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
         const orderId = await database.createOrder(userId, totalAmount, delivery_address);
 
         for (const item of cartItems) {
-            await database.addSoldMachinery(orderId, item.mach_id, item.seller_id, userId, parseFloat(item.mach_price));
+            await database.addSoldMachinery(orderId, item.mach_id, item.seller_id, userId, parseFloat(item.mach_price),item.quantity);
             await database.removeCartItem(item.cart_item_id);
         }
 
@@ -620,7 +635,7 @@ app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
         console.error('Error processing payment:', error);
         res.status(500).send('Error processing payment');
     }
-}));
+}))
 app.post('/machinery/:id/cart', requireLogin, catchAsync(async (req, res) => {
     console.log("add machinery");
     const catch_cartId = await redis.get(`${req.session.user_id}#cart`);

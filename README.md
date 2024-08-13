@@ -21,34 +21,34 @@ Agribazar is a platform designed to connect farmers, buyers, and sellers in a se
 
 ##RUN APP
 
--node app.js
+node app.js
 
 ## Environment Variables
 
 To run this project, you will need to set up the following environment variables:
 
--MYSQL_HOST=
+MYSQL_HOST=
 
--MYSQL_USER=
+MYSQL_USER=
 
--MYSQL_PASSWORD=
+MYSQL_PASSWORD=
 
--MYSQL_DATABASE=
+MYSQL_DATABASE=
 
--CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_CLOUD_NAME=
 
--CLOUDINARY_KEY=
+CLOUDINARY_KEY=
 
--CLOUDINARY_SECRET=
+CLOUDINARY_SECRET=
 
--MAPBOX_TOKEN=
+MAPBOX_TOKEN=
 
--REDIS_HOST=
+REDIS_HOST=
 
--REDIS_PORT=
+REDIS_PORT=
 
--REDIS_PASSWORD=
+REDIS_PASSWORD=
 
--GMAIL=
+GMAIL=
 
--MAIL_PASS=
+MAIL_PASS=

@@ -2,6 +2,23 @@
 
 Agribazar is a platform designed to connect farmers, buyers, and sellers in a seamless online marketplace. This repository contains the backend codebase of the application.
 
+##Prerequisites
+Node.js
+MySQL
+Redis
+Cloudinary Account
+Mapbox Account
+Gmail account for SMTP
+
+
+##LOAD SAMPLE DATA
+node seeds/index.js
+
+
+
+##RUN APP
+node app.js
+
 ## Environment Variables
 
 To run this project, you will need to set up the following environment variables:
@@ -20,22 +37,3 @@ REDIS_PORT=
 REDIS_PASSWORD=
 GMAIL=
 MAIL_PASS=
-
-
-Getting Started
-Prerequisites
-Node.js
-MySQL
-Redis
-Cloudinary Account
-Mapbox Account
-Gmail account for SMTP
-
-
-LOAD SAMPLE DATA
-node seeds/index.js
-
-
-
-RUN APP
-node app.js

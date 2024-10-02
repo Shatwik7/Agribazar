@@ -607,8 +607,6 @@ app.delete('/machinery/:mach_id/review/:rev_id', requireLogin, catchAsync(async 
 app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
     const { delivery_address } = req.body;
     const userId = req.session.user_id;
-    console.log("Processing payment");
-
     try {
         const cartId = await database.FindCart(userId);
         const cartItems = await database.FindCartItems(cartId);
@@ -619,9 +617,7 @@ app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
             totalAmount += price * item.quantity;
         }
         console.log("Total Amount:", totalAmount);
-
         const orderId = await database.createOrder(userId, totalAmount, delivery_address);
-
         for (const item of cartItems) {
             await database.addSoldMachinery(orderId, item.mach_id, item.seller_id, userId, parseFloat(item.mach_price),item.quantity);
             await database.removeCartItem(item.cart_item_id);

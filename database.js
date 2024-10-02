@@ -51,7 +51,7 @@ module.exports.FindProduct = async (id) => {
 }
 
 module.exports.FindAllProduct = async () => {
-    const [rows] = await pool.query('SELECT * FROM products where status="active";');
+    const [rows] = await pool.query(`SELECT * FROM products where status='active';`);
     return rows;
 }
 module.exports.SearchAndSortProducts = async (search, sort, limit, offset) => {
@@ -74,7 +74,7 @@ module.exports.SearchAndSortProducts = async (search, sort, limit, offset) => {
     return { products, totalCount: count };
 }
 module.exports.FindAllProductByUser = async (id) => {
-    const [rows] = await pool.query(`SELECT * FROM products where status="active" and seller_id=${id};`);
+    const [rows] = await pool.query(`SELECT * FROM products where status='active' and seller_id=${id};`);
     return rows;
 }
 

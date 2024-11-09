@@ -60,7 +60,7 @@ const seed = async () => {
     //   limit: 1
     // }).send();
 
-    const Coordinates = [coordinates[i].longitude,coordinates[i].latitude];
+    const Coordinates = [coordinates[i].longitude, coordinates[i].latitude];
     const startingPrice = getRandomArbitrary(1500, 6000);
     const reservePrice = getRandomArbitrary(1900, 6000);
 
@@ -92,6 +92,59 @@ const seed = async () => {
 };
 
 // Run the seed function
-seed().catch(err => {
-  console.error('Error during seeding:', err);
-});
+// seed().catch(err => {
+//   console.error('Error during seeding:', err);
+// });
+
+/**
+ * Main function to create random bids for each product.
+ */
+const main = async () => {
+  try {
+    const [products] = await pool.query(`SELECT product_id, starting_price FROM products`);
+
+    products.forEach(async (product) => {
+      const productId = product.product_id;
+      const startingPrice = product.starting_price;
+
+      for (let index = 0; index < parseInt(Math.random() * 17); index++) {
+        const bidAmount = parseInt(startingPrice + Math.random() * 1000);
+
+        // Generate a random date within the past year
+        const bidTime = randomDateWithinPastYear();
+
+        // Bidder ID will be 81 as per your requirement
+        const bidderId = 1;
+
+        // Insert the generated bid into the `bids` table
+        await pool.query(`
+              INSERT INTO bids (auction_id, bidder_id, bid_amount, bid_time)
+              VALUES (?, ?, ?, ?)
+          `, [productId, bidderId, bidAmount, bidTime]);
+
+        console.log(`Inserted bid for product ID ${productId} with amount ${bidAmount} at time ${bidTime}`);
+
+      }
+    });
+  } catch (error) {
+    console.error('Error inserting bids:', error);
+  }
+};
+
+/**
+* Function to generate a random date within the past year.
+* @returns {string} - Date string in 'YYYY-MM-DD HH:MM:SS' format.
+*/
+function randomDateWithinPastYear() {
+  const now = new Date();
+  const pastYear = new Date();
+  pastYear.setFullYear(now.getFullYear() - 1);
+
+  const randomTime = pastYear.getTime() + Math.random() * (now.getTime() - pastYear.getTime());
+  const randomDate = new Date(randomTime);
+
+  return randomDate.toISOString().split('T')[0] + ' ' + randomDate.toTimeString().split(' ')[0];
+}
+
+// Execute the main function
+main();

@@ -25,7 +25,7 @@ const geocoder = mbxGeocoding({ accessToken: mapboxToken });
 const multer = require('multer');
 const { storage, trans } = require('./cloudinary/index');
 const upload = multer({ storage });
-const redis=require('./redis.js');
+const redis = require('./redis.js');
 const appError = require('./utils/appError');
 const catchAsync = require('./utils/asyncError');
 const { compareSync } = require('bcrypt');
@@ -33,6 +33,8 @@ const { compareSync } = require('bcrypt');
 const { isMerchant, isFarmer, isBloger, checkMerchant, checkFarmer, validBlog, validMachinery, validUser, validBid, validProduct, validMapSearch } = require('./middleware.js');
 const { mail } = require('./sendmail.js');
 const { default: RedisStore } = require('connect-redis');
+const adminRoute = require('./routes/adminRoute.js');
+const { count } = require('console');
 
 
 const sessionConfig = {
@@ -66,26 +68,50 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(flash());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const requireLogin = async(req, res, next) => {
+const requireLogin = async (req, res, next) => {
     req.session.returnTo = req.path;
-    const catchData=await redis.get(`${req.session.user_id}`);
-    if (!req.session||!req.session.user_id||!catchData) {
+    const catchData = await redis.get(`${req.session.user_id}`);
+    if (!req.session || !req.session.user_id || !catchData) {
         return res.redirect('/login');
     }
     next();
 }
 
-
-
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     res.locals.success = req.flash('success');
     res.locals.currentUser = req.session.user_id;
     res.locals.User = req.session.user;
     res.locals.returnTo = req.session.returnTo;
     res.locals.error = req.flash('error');
+    
+    const sessionKey = req.sessionID;
+    if (sessionKey) {
+        try {
+            const sessionExists = await redis.exists(sessionKey);
+
+            if (!sessionExists) {
+                // Get the current count, increment, and set in a single transaction
+                const replies = await redis.multi()
+                    .incr('count') // This increments 'count' atomically
+                    .set(sessionKey, 1)
+                    .exec();
+
+                const newCount = replies[0]; // Result of the incr('count')
+                console.log("New count set:", newCount);
+            }
+
+            // Retrieve and log the count
+            const count = await redis.get('count');
+            console.log("Count:", count);
+
+        } catch (err) {
+            console.error("Redis error:", err);
+        }
+    } else {
+        console.error("Error: 'sessionKey' is undefined.");
+    }
     next();
 })
-
 
 app.get('/', (req, res) => {
     res.render('home');
@@ -104,18 +130,18 @@ app.get('/api/product-count', catchAsync(async (req, res) => {
 
 // get the product data to the frontend ajax call
 app.get('/api/products', async (req, res) => {
-    
+
     const { sort = '', search = '', page = 1, limit = 12 } = req.query;
     const offset = (page - 1) * limit;
-    const key=`product#${sort}#${search}#${page}`;
+    const key = `product#${sort}#${search}#${page}`;
     const cachedData = await redis.get(key);
-    if(cachedData){
+    if (cachedData) {
         return res.json(JSON.parse(cachedData));
     }
-    const {products,totalCount}= await database.SearchAndSortProducts(search,sort,limit,offset);
-    const data={
+    const { products, totalCount } = await database.SearchAndSortProducts(search, sort, limit, offset);
+    const data = {
         products,
-        totalPages: Math.ceil(totalCount/ limit)
+        totalPages: Math.ceil(totalCount / limit)
     };
     await redis.set(key, JSON.stringify(data), 'EX', 120);
     res.json(data);
@@ -248,17 +274,17 @@ app.get('/product/new', requireLogin, checkFarmer, catchAsync(async (req, res) =
     if (!loc.lng) {
         loc = { lng: 74.5, lat: 20 };
     }
-    const catchData= await redis.get('product/new');
-    if(catchData){
-        const mspset=JSON.parse(catchData);
-        return res.render('product/new',{mspset,loc});
+    const catchData = await redis.get('product/new');
+    if (catchData) {
+        const mspset = JSON.parse(catchData);
+        return res.render('product/new', { mspset, loc });
     }
     const mspset = await database.mspset();
     res.render('product/new', { mspset, loc });
 }))
 
 // show the machinery enlisted by the user
-app.get('/user/machinery',requireLogin,checkMerchant,catchAsync(async(req,res)=>{
+app.get('/user/machinery', requireLogin, checkMerchant, catchAsync(async (req, res) => {
     const merchantId = req.session.user_id;
     try {
         const machineryRows = await database.findMachineryForMerchant(merchantId);
@@ -333,13 +359,13 @@ app.get('/product/:id', requireLogin, catchAsync(async (req, res) => {
 }))
 
 // send the data of the bids related to the product
-app.get('/product/:id/bids',requireLogin,catchAsync(async(req,res)=>{
+app.get('/product/:id/bids', requireLogin, catchAsync(async (req, res) => {
     const Id = req.params.id;
     try {
-      const bids = await database.Bids(Id);
-      res.status(400).json(bids);
+        const bids = await database.Bids(Id);
+        res.status(400).json(bids);
     } catch (error) {
-      res.status(500).send(error.message);
+        res.status(500).send(error.message);
     }
 }))
 
@@ -362,8 +388,8 @@ app.get('/login', (req, res) => {
 })
 
 // post the details of the user for login 
-app.post('/user/login',catchAsync(async (req, res) => {
-    if(req.session.User){
+app.post('/user/login', catchAsync(async (req, res) => {
+    if (req.session.User) {
         return res.redirect('/product')
     }
     const user = await database.FindUserByEmail(req.body.email);
@@ -374,7 +400,7 @@ app.post('/user/login',catchAsync(async (req, res) => {
     }
     const isUser = await auth.login(req.body.password, user.password);
     const isDetained = await redis.get(`blacklist:${user.user_id}`);
-    if (isDetained&&isUser) {
+    if (isDetained && isUser) {
         req.flash('error', 'Your account has been detained.');
         return res.redirect('/login');
     }
@@ -383,12 +409,12 @@ app.post('/user/login',catchAsync(async (req, res) => {
         req.session.user = user;
         req.session.user_type = user.user_type;
         req.session.user_id = user.user_id;
-        await redis.set(`${req.session.user_id}`,toString(user.user_id),'EX',3600);
+        await redis.set(`${req.session.user_id}`, toString(user.user_id), 'EX', 3600);
         req.flash('success', 'welcome back!');
         const redirectUrl = `${res.locals.returnTo}`;
-        if(redirectUrl){
+        if (redirectUrl) {
             return res.redirect(redirectUrl);
-        }else{
+        } else {
             return res.redirect('/product');
         }
     }
@@ -414,11 +440,11 @@ app.post('/user/new', validUser, catchAsync(async (req, res) => {
     try {
         const u = await database.FindUserByEmail(req.body.email);
         if (u) {
-            req.flash('error','you are already a user');
+            req.flash('error', 'you are already a user');
             return res.redirect('/login');
         }
         const token = crypto.randomBytes(32).toString('hex');
-        const expirationTime = 5*60;
+        const expirationTime = 5 * 60;
         const userData = {
             username: req.body.username,
             email: req.body.email,
@@ -452,7 +478,7 @@ app.get('/verify-email', catchAsync(async (req, res) => {
         await redis.del(token);
         await database.AddUser(user);
     } catch (error) {
-        req.flash('success','your email has already verified');
+        req.flash('success', 'your email has already verified');
         return res.redirect('/login');
     }
     req.flash('success', 'Your email has been verified. You can now log in.');
@@ -487,7 +513,7 @@ app.get('/user/order/:orderId/machinery', requireLogin, catchAsync(async (req, r
 // gets the details of the user
 app.get('/user/:id', requireLogin, catchAsync(async (req, res) => {
     const user = await database.FindUserById(req.session.user_id);
-    if(!user){
+    if (!user) {
         return res.redirect('/product');
     }
     res.render('user/show', { user });
@@ -542,7 +568,7 @@ app.get('/machinery', catchAsync(async (req, res) => {
 
 app.put('/machinery/:machinery_id', async (req, res, next) => {
     try {
-        console.log(req.params,req.body);
+        console.log(req.params, req.body);
         const { machinery_id } = req.params;
         const { field, value } = req.body;
         if (!field || !value) {
@@ -555,7 +581,7 @@ app.put('/machinery/:machinery_id', async (req, res, next) => {
         }
         res.json(updatedMachinery);
     } catch (err) {
-        next(err); 
+        next(err);
     }
 });
 
@@ -619,7 +645,7 @@ app.post('/process_payment', requireLogin, catchAsync(async (req, res) => {
         console.log("Total Amount:", totalAmount);
         const orderId = await database.createOrder(userId, totalAmount, delivery_address);
         for (const item of cartItems) {
-            await database.addSoldMachinery(orderId, item.mach_id, item.seller_id, userId, parseFloat(item.mach_price),item.quantity);
+            await database.addSoldMachinery(orderId, item.mach_id, item.seller_id, userId, parseFloat(item.mach_price), item.quantity);
             await database.removeCartItem(item.cart_item_id);
         }
 
@@ -638,14 +664,14 @@ app.post('/machinery/:id/cart', requireLogin, catchAsync(async (req, res) => {
     if (!catch_cartId) {
         console.log("cache miss");
         var cart_id = await database.FindCart(req.session.user_id);
-        await redis.set(`${req.session.user_id}#cart`, JSON.stringify(cart_id),"EX",600);
+        await redis.set(`${req.session.user_id}#cart`, JSON.stringify(cart_id), "EX", 600);
     } else {
         console.log("cache hit");
         var cart_id = JSON.parse(catch_cartId);
         console.log("cart id =", cart_id);
     }
-    if(!await database.updateMachinery(req.params.id,req.body.quantity)){
-        req.flash('error',`we don't have ${req.body.quantity} in stock`);
+    if (!await database.updateMachinery(req.params.id, req.body.quantity)) {
+        req.flash('error', `we don't have ${req.body.quantity} in stock`);
         return res.redirect(`/machinery/${req.params.id}`);
     }
     const insert_id = await database.addCartItem(cart_id, req.params.id, req.body.quantity);
@@ -656,26 +682,26 @@ app.post('/machinery/:id/cart', requireLogin, catchAsync(async (req, res) => {
     }
     res.redirect(`/machinery/${req.params.id}`);
 }));
-app.delete('/cart/:mach_id',requireLogin,catchAsync(async(req,res)=>{
+app.delete('/cart/:mach_id', requireLogin, catchAsync(async (req, res) => {
     try {
         const catch_cartId = await redis.get(`${req.session.user_id}#cart`);
         if (!catch_cartId) {
             console.log("cache miss");
             var cart_id = await database.FindCart(req.session.user_id);
-            await redis.set(`${req.session.user_id}#cart`, JSON.stringify(cart_id),"EX",600);
+            await redis.set(`${req.session.user_id}#cart`, JSON.stringify(cart_id), "EX", 600);
         } else {
             console.log("cache hit");
             var cart_id = JSON.parse(catch_cartId);
         }
-        await database.removeCartItem(cart_id,req.params.mach_id);
+        await database.removeCartItem(cart_id, req.params.mach_id);
         res.status(200).json({
-            no_of_item:1,
-            deleted:"success"
+            no_of_item: 1,
+            deleted: "success"
         });
     } catch (error) {
         console.log(error);
         res.status(500).json({
-            status:"transation failed"
+            status: "transation failed"
         });
     }
 }))
@@ -717,10 +743,10 @@ app.post('/blogs/:blog_id/comment', requireLogin, catchAsync(async (req, res) =>
 }))
 
 app.get('/payment', (req, res, next) => {
-    if(req.query.for=="cart"){
-        const cart=0;
+    if (req.query.for == "cart") {
+        const cart = 0;
     }
-    res.render('payment/pay', { }, (err, html) => {
+    res.render('payment/pay', {}, (err, html) => {
         if (err) {
             next(err);
         } else {
@@ -728,6 +754,9 @@ app.get('/payment', (req, res, next) => {
         }
     });
 });
+
+
+app.use('/admin', adminRoute);
 
 
 

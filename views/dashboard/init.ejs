@@ -1,0 +1,201 @@
+<% layout('layout/dashboard') %>
+<style>
+    .card-title { font-weight: bold; }
+    .dashboard-section { margin-top: 20px; }
+
+    /* Card Colors */
+    .card {
+        border-radius: 8px;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        color: #2D3748; /* Dark Gray */
+    }
+
+    .card-text {
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: #4A90E2; /* Blue */
+    }
+
+    /* Card Background Colors */
+    .card.visits { background-color: #f1f8ff; }
+    .card.total-users { background-color: #e9f7ef; }
+    .card.total-products { background-color: #fef7e6; }
+    .card.total-machinery { background-color: #f8f9f9; }
+    .card.total-orders { background-color: #f9ebea; }
+    .card.total-comments { background-color: #eff8ff; }
+    .card.total-blogs { background-color: #f4f7ff; }
+    .card.total-reviews { background-color: #eef9f5; }
+    .card.total-bids { background-color: #e0f7fa; }
+    .card.finished-auctions { background-color: #f5f5f5; }
+
+    /* Recent Activity Table */
+    table th {
+        background-color: #2D3748; /* Dark Gray */
+        color: white;
+    }
+
+    table tbody tr:nth-child(odd) {
+        background-color: #f9f9f9;
+    }
+
+    table tbody tr:nth-child(even) {
+        background-color: #f1f1f1;
+    }
+
+    table tbody tr:hover {
+        background-color: #e0e0e0; /* Light Gray */
+    }
+
+    /* Headers */
+    h1, h3 {
+        color: #2D3748;
+    }
+</style>
+<div class="container mt-4">
+    <h1 class="h2">Dashboard Overview</h1>
+    <hr>
+
+    <!-- Overview Cards Section -->
+    <div class="row dashboard-section">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm visits">
+                <div class="card-body">
+                    <h5 class="card-title">Vistis</h5>
+                    <p class="card-text"><span id="visits">14</span> Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-users">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <p class="card-text"><span id="userCount">14</span> Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-products">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <p class="card-text"><span id="productCount">450</span> Products</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-machinery">
+                <div class="card-body">
+                    <h5 class="card-title">Total Machinery</h5>
+                    <p class="card-text"><span id="machineryCount">11</span> Machinery</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-orders">
+                <div class="card-body">
+                    <h5 class="card-title">Total Orders</h5>
+                    <p class="card-text"><span id="orderCount">0</span> Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-comments">
+                <div class="card-body">
+                    <h5 class="card-title">Total Comments</h5>
+                    <p class="card-text"><span id="commentCount">0</span> Comments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-blogs">
+                <div class="card-body">
+                    <h5 class="card-title">Total Blogs</h5>
+                    <p class="card-text"><span id="blogCount">0</span> Blogs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-reviews">
+                <div class="card-body">
+                    <h5 class="card-title">Total Reviews</h5>
+                    <p class="card-text"><span id="reviewCount">0</span> Reviews</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm total-bids">
+                <div class="card-body">
+                    <h5 class="card-title">Total Bids</h5>
+                    <p class="card-text"><span id="bidCount">7512</span> Bids</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm finished-auctions">
+                <div class="card-body">
+                    <h5 class="card-title">Finished Auctions</h5>
+                    <p class="card-text"><span id="finishedAuctionCount">1</span> Finished Auctions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Table -->
+    <div class="dashboard-section">
+        <h3>Recent Activity</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Product</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="recentActivity">
+                    <!-- Example row -->
+                    <tr>
+                        <td>12345</td>
+                        <td>Tractor</td>
+                        <td>John Doe</td>
+                        <td>Shipped</td>
+                        <td>2024-11-05</td>
+                    </tr>
+                    <!-- More rows would be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fetch dashboard data and update the counts every 5 seconds
+    async function updateDashboardCounts() {
+        const response = await fetch('/admin/api/dashboardData');
+        const data = await response.json();
+
+        document.getElementById('userCount').textContent = data.user_count;
+        document.getElementById('productCount').textContent = data.product_count;
+        document.getElementById('machineryCount').textContent = data.machinery_count;
+        document.getElementById('orderCount').textContent = data.order_count;
+        document.getElementById('commentCount').textContent = data.comment_count;
+        document.getElementById('blogCount').textContent = data.blog_count;
+        document.getElementById('reviewCount').textContent = data.review_count;
+        document.getElementById('bidCount').textContent = data.bid_count;
+        document.getElementById('finishedAuctionCount').textContent = data.finished_auction_count;
+        document.getElementById('visits').textContent = data.visits;
+    }
+
+    // Call the update function initially and then every 5 seconds
+    updateDashboardCounts();
+    setInterval(updateDashboardCounts, 5000);
+</script>

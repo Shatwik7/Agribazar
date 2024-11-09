@@ -1,0 +1,251 @@
+<% layout('layout/dashboard') %>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- Main Container -->
+<div class="container mt-5">
+    <h1 class="text-center mb-4 title">Admin Report</h1>
+
+    <!-- Date Selection Form -->
+    <form id="dateForm" class="form-inline justify-content-center mb-4">
+        <div class="form-group mx-2">
+            <label for="startDate" class="mr-2">Start Date:</label>
+            <input type="date" id="startDate" class="form-control input-field" required>
+        </div>
+        <div class="form-group mx-2">
+            <label for="endDate" class="mr-2">End Date:</label>
+            <input type="date" id="endDate" class="form-control input-field" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg mx-2">Generate Report</button>
+    </form>
+
+    <!-- Placeholder Content (loading state) -->
+    <div id="placeholders" class="mt-4" style="display: none;">
+        <div class="card mb-4 placeholder-card">
+            <div class="card-body">
+                <h5 class="card-title placeholder-glow">
+                    <span class="placeholder col-6"></span>
+                </h5>
+                <p class="card-text placeholder-glow">
+                    <span class="placeholder col-7"></span>
+                    <span class="placeholder col-4"></span>
+                    <span class="placeholder col-4"></span>
+                    <span class="placeholder col-6"></span>
+                    <span class="placeholder col-8"></span>
+                </p>
+                <a class="btn btn-primary disabled placeholder col-6" aria-disabled="true"></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Button -->
+    <button id="downloadPdfBtn" class="btn btn-success btn-lg mb-4" title="Download the report as PDF">Download Report as PDF</button>
+
+    <!-- Report Content (dynamically added) -->
+    <div id="reportContent" class="mt-4"></div>
+</div>
+
+<!-- Styles -->
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f9f9f9;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+    }
+    
+    .title {
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: #4A90E2;
+    }
+
+    .input-field {
+        font-size: 1.1rem;
+        padding: 8px 12px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        width: 250px;
+        box-sizing: border-box;
+    }
+
+    .btn {
+        font-size: 1.1rem;
+        padding: 12px 20px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+        background-color: #3b82f6;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-inline {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .placeholder-card {
+        background-color: #f7f7f7;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background-color: #4A90E2;
+        color: #fff;
+        padding: 15px;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .table {
+        font-size: 1rem;
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    .table th,
+    .table td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    .table-bordered {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .table th {
+        background-color: #f0f0f0;
+        color: #333;
+    }
+
+    .table td {
+        background-color: #fff;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-inline {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .input-field {
+            width: 100%;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+
+        .title {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<!-- Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dateForm = document.getElementById("dateForm");
+    const placeholders = document.getElementById("placeholders");
+    const reportContent = document.getElementById("reportContent");
+
+    document.getElementById("downloadPdfBtn").addEventListener("click", async () => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        const reportSections = document.querySelectorAll("#reportContent .card");
+
+        for (let i = 0; i < reportSections.length; i++) {
+            const section = reportSections[i];
+
+            // Use html2canvas to render section as an image
+            const canvas = await html2canvas(section);
+            const imgData = canvas.toDataURL("image/png");
+            const imgWidth = 190;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            if (i > 0) pdf.addPage(); 
+            pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+        }
+
+        // Save the PDF
+        pdf.save("Admin_Report.pdf");
+    });
+
+    dateForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        // Show placeholders and clear report content
+        placeholders.style.display = "block";
+        reportContent.innerHTML = ""; 
+
+        try {
+            // Fetch report data from the API
+            const response = await fetch(`/admin/api/report?startDate=${startDate}&endDate=${endDate}`);
+            const data = await response.json();
+
+            // Populate report data
+            createReportSections(data);
+
+        } catch (error) {
+            console.error("Error fetching report data:", error);
+            alert("Failed to fetch report data. Please try again.");
+        } finally {
+            placeholders.style.display = "none";
+        }
+    });
+
+    function createReportSections(data) {
+        reportContent.innerHTML += createSection("User Statistics", data.users);
+        reportContent.innerHTML += createSection("Product Statistics", data.products);
+        reportContent.innerHTML += createSection("Sales Statistics", data.sales);
+        reportContent.innerHTML += createSection("Bid Statistics", data.bids);
+        reportContent.innerHTML += createSection("Machinery Statistics", data.machinery);
+        reportContent.innerHTML += createSection("Order Statistics", data.orders);
+    }
+
+    function createSection(title, data) {
+        let rows = "";
+        for (const [key, value] of Object.entries(data)) {
+            rows += `<tr><th>${key}</th><td>${value ?? 'N/A'}</td></tr>`;
+        }
+
+        return `
+            <div class="card mb-4">
+                <div class="card-header">${title}</div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        ${rows}
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+});
+</script>
+
+<!-- Bootstrap 4.5.2 -->
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

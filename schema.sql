@@ -5,6 +5,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     user_type ENUM('farmer', 'merchant' ,'consumer') NOT NULL,
     image_url VARCHAR(255),
+    isAdmin BOOLEAN DEFAULT FALSE;
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

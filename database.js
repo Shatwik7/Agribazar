@@ -261,7 +261,7 @@ module.exports.allMachinery = async () => {
     const [rows] = await pool.query(`SELECT * FROM machinery`);
     return rows;
 }
-module.exports.findMachineryForMerchant=async(id)=>{
+module.exports.findMachineryForMerchant = async (id) => {
     const [machineryRows] = await pool.query('SELECT * FROM machinery WHERE seller_id = ?', [id]);
     return machineryRows;
 }
@@ -349,7 +349,7 @@ where machinery_id=${id};`);
     return rows;
 }
 
-module.exports.createOrder= async (userId, totalAmount, deliveryAddress) => {
+module.exports.createOrder = async (userId, totalAmount, deliveryAddress) => {
     const query = `
         INSERT INTO orders (user_id, total_amount, payment_method, payment_status, shipping_address)
         VALUES (?, ?, 'Pay on Delivery', 'pending', ?)
@@ -357,9 +357,9 @@ module.exports.createOrder= async (userId, totalAmount, deliveryAddress) => {
     const [result] = await pool.query(query, [userId, totalAmount, deliveryAddress]);
     return result.insertId;
 },
-module.exports.findMachineryByOrderId = async (orderId) => {
-    try {
-        const query = `
+    module.exports.findMachineryByOrderId = async (orderId) => {
+        try {
+            const query = `
             SELECT 
                 m.machinery_name,
                 SUM(sm.quantity) AS total_quantity_bought,
@@ -373,15 +373,15 @@ module.exports.findMachineryByOrderId = async (orderId) => {
                 sm.order_id = ?
             GROUP BY 
                 m.machinery_name, sm.sale_price`;
-        
-        const [machinery] = await pool.query(query, [orderId]);
-        return machinery;
-    } catch (error) {
-        throw error;
-    }
-};
 
-module.exports.findOrdersByUserId=async(userId)=>{
+            const [machinery] = await pool.query(query, [orderId]);
+            return machinery;
+        } catch (error) {
+            throw error;
+        }
+    };
+
+module.exports.findOrdersByUserId = async (userId) => {
     const query = `
         SELECT * 
         FROM orders 
@@ -391,23 +391,23 @@ module.exports.findOrdersByUserId=async(userId)=>{
     const [rows, fields] = await pool.query(query, [userId]);
     return rows;
 }
-module.exports.addSoldMachinery= async (orderId, machineryId, sellerId, buyerId, salePrice,qty) => {
+module.exports.addSoldMachinery = async (orderId, machineryId, sellerId, buyerId, salePrice, qty) => {
     const query = `
         INSERT INTO sold_machinery (order_id, machinery_id, seller_id, buyer_id, sale_price,quantity)
         VALUES (?, ?, ?, ?, ?,?)
     `;
-    await pool.query(query, [orderId, machineryId, sellerId, buyerId, salePrice,qty]);
+    await pool.query(query, [orderId, machineryId, sellerId, buyerId, salePrice, qty]);
 },
 
-module.exports.removeCartItem= async (cartItemId) => {
-    const query = `DELETE FROM cart_item WHERE cart_item_id = ?`;
-    await pool.query(query, [cartItemId]);
-},
+    module.exports.removeCartItem = async (cartItemId) => {
+        const query = `DELETE FROM cart_item WHERE cart_item_id = ?`;
+        await pool.query(query, [cartItemId]);
+    },
 
-module.exports.clearCart=async (userId) => {
-    const query = `DELETE FROM cart WHERE user_id = ?`;
-    await pool.query(query, [userId]);
-}
+    module.exports.clearCart = async (userId) => {
+        const query = `DELETE FROM cart WHERE user_id = ?`;
+        await pool.query(query, [userId]);
+    }
 
 module.exports.addReview = async (req) => {
     const insertId = await pool.query(`INSERT INTO machinery_reviews(machinery_id,user_id,rating,comment) VALUES(?,?,?,?)`, [req.params.id, req.session.user_id, req.body.rating, req.body.comment]);
@@ -472,7 +472,7 @@ module.exports.addCartItem = async (cart_id, mach_id, qty) => {
 module.exports.removeCartItem = async (cart_id, mach_id) => {
     const [existingCartItem] = await pool.query(`SELECT * FROM cart_item WHERE cart_id = ? AND mach_id = ?;`, [cart_id, mach_id]);
     if (existingCartItem.length === 0) {
-        return false; 
+        return false;
     }
     const quantityInCart = existingCartItem[0].quantity;
     await pool.query(`DELETE FROM cart_item WHERE cart_id = ? AND mach_id = ?;`, [cart_id, mach_id]);
@@ -580,4 +580,165 @@ module.exports.updateBlog = async (newBlog) => {
     return result.insertId;
 }
 
+module.exports.getActivityReport = async (startDate, endDate) => {
+    try {
+        const [userReport] = await pool.query(`
+            SELECT 
+                COUNT(user_id) AS total_users,
+                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) AS new_users,
+                COUNT(CASE WHEN user_type = 'farmer' THEN 1 END) AS farmers,
+                COUNT(CASE WHEN user_type = 'merchant' THEN 1 END) AS merchants,
+                COUNT(CASE WHEN user_type = 'consumer' THEN 1 END) AS consumers
+            FROM users;
+        `, [startDate, endDate]);
+        const [productReport] = await pool.query(`
+            SELECT 
+                COUNT(product_id) AS total_products,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) AS active_products,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_products,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) AS new_products,
+                AVG(starting_price) AS avg_starting_price,
+                AVG(reserve_price) AS avg_reserve_price
+            FROM products;
+        `, [startDate, endDate]);
+        const [salesReport] = await pool.query(`
+            SELECT 
+                COUNT(sold_id) AS total_sales,
+                SUM(sale_price) AS total_revenue,
+                MAX(sale_price) AS highest_sale_price,
+                MIN(sale_price) AS lowest_sale_price,
+                COUNT(DISTINCT seller_id) AS unique_sellers,
+                COUNT(DISTINCT buyer_id) AS unique_buyers
+            FROM sold_products
+            WHERE sale_time BETWEEN ? AND ?;
+        `, [startDate, endDate]);
+        const [bidReport] = await pool.query(`
+            SELECT 
+                COUNT(bid_id) AS total_bids,
+                COUNT(DISTINCT bidder_id) AS unique_bidders,
+                AVG(bid_amount) AS avg_bid_amount,
+                MAX(bid_amount) AS highest_bid
+            FROM bids
+            WHERE bid_time BETWEEN ? AND ?;
+        `, [startDate, endDate]);
+        const [machineryReport] = await pool.query(`
+            SELECT 
+                COUNT(machinery.machinery_id) AS total_machinery_listed,
+                AVG(machinery.price) AS avg_price,
+                SUM(sold_machinery.sale_price) AS total_machinery_revenue
+            FROM machinery
+            LEFT JOIN sold_machinery ON machinery.machinery_id = sold_machinery.machinery_id
+            WHERE machinery.created_at BETWEEN ? AND ?;
+        `, [startDate, endDate]);
+        const [orderReport] = await pool.query(`
+            SELECT 
+                COUNT(order_id) AS total_orders,
+                SUM(total_amount) AS total_revenue,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending_orders,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_orders,
+                COUNT(CASE WHEN status = 'cancelled' THEN 1 END) AS cancelled_orders
+            FROM orders
+            WHERE order_date BETWEEN ? AND ?;
+        `, [startDate, endDate]);
+        return {
+            users: userReport[0],
+            products: productReport[0],
+            sales: salesReport[0],
+            bids: bidReport[0],
+            machinery: machineryReport[0],
+            orders: orderReport[0],
+        };
+    } catch (error) {
+        console.error('Error generating report:', error);
+        return null;
+    }
+};
 
+module.exports.cropAnalytics = async () => {
+    const [result] = await pool.query(`WITH CropAnalytics AS (
+            SELECT 
+                LOWER(TRIM(SUBSTRING_INDEX(product_name, ' ', 1))) AS crop_type,
+                AVG(starting_price) AS average_starting_price
+            FROM products
+            GROUP BY crop_type
+            ),
+            MaxBids AS (
+            SELECT 
+                LOWER(TRIM(SUBSTRING_INDEX(p.product_name, ' ', 1))) AS crop_type,
+                MAX(b.bid_amount) AS max_bid
+            FROM products p
+            JOIN bids b ON b.auction_id = p.product_id
+            GROUP BY crop_type
+            )   
+            SELECT
+                ca.crop_type,
+                ca.average_starting_price,
+                COALESCE(mb.max_bid, 0) AS max_bid
+            FROM CropAnalytics ca
+            LEFT JOIN MaxBids mb ON ca.crop_type = mb.crop_type;
+            `);
+    return result;
+}
+module.exports.bidAnalytics = async (startDate, endDate) => {
+    const [result] = await pool.query(`
+    SELECT 
+        DATE_FORMAT(bid_time, '%Y-%m-%d') AS date,
+        COUNT(*) AS number_of_bids
+    FROM bids
+    WHERE bid_time BETWEEN ? AND ?
+    GROUP BY DATE_FORMAT(bid_time, '%Y-%m-%d')
+    ORDER BY date;
+    `, [startDate, endDate]);
+    console.log(result);
+    return result;
+};
+
+module.exports.cropTypeGraph = async () => {
+    const [result] = await pool.query(`
+        SELECT 
+            product_name,
+            COUNT(*) AS product_count
+        FROM products
+        GROUP BY product_name
+        ORDER BY product_count DESC;`);
+    return result;
+}
+
+module.exports.userTypeGraph = async () => {
+    const [result] = await pool.query(`
+        SELECT 
+            user_type,
+            COUNT(*) AS user_count
+        FROM users
+        GROUP BY user_type`);
+    return result;
+}
+module.exports.dashboardCounts = async () => {
+    const [result] = await pool.query(`
+        SELECT 
+            (SELECT COUNT(*) FROM users) AS user_count,
+            (SELECT COUNT(*) FROM products) AS product_count,
+            (SELECT COUNT(*) FROM machinery) AS machinery_count,
+            (SELECT COUNT(*) FROM orders) AS order_count,
+            (SELECT COUNT(*) FROM comments) AS comment_count,
+            (SELECT COUNT(*) FROM blogs) AS blog_count,
+            (SELECT COUNT(*) FROM machinery_reviews) AS review_count,
+            (SELECT COUNT(*) FROM bids) AS bid_count,
+            (SELECT COUNT(*) FROM products WHERE status = 'completed') AS finished_auction_count
+    `);
+    
+    return result[0];
+};
+module.exports.findAllUsers = async () => {
+    const [result] = await pool.query(`SELECT * FROM users`);
+    console.log(result);
+    return result;
+};
+module.exports.findUserAdminTable=async(userId)=>{
+    const [result]= await pool.query(`SELECT isAdmin FROM users WHERE user_id = ?`, [userId]);
+    return result;
+}
+module.exports.ToggleIsAdmin=async(userId,newIsAdminValue)=>{
+    const [result]=await  await pool.query(`UPDATE users SET isAdmin = ? WHERE user_id = ?`, [newIsAdminValue, userId]);
+    return result
+}

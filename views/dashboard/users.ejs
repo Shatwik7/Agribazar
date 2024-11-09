@@ -1,0 +1,86 @@
+<% layout('layout/dashboard') %>
+<div class="container py-4">
+    <h1 class="text-center text-primary mb-4">User Management</h1>
+    
+    <!-- Search Bar -->
+    <div class="mb-4">
+        <input type="text" id="searchBar" class="form-control" placeholder="Search users by name..." oninput="filterUsers()">
+    </div>
+
+    <!-- Users Section -->
+    <div id="userCards" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <% users.forEach(user => { %>
+            <div class="col user-card" data-username="<%= user.username.toLowerCase() %>" id="user-<%= user.user_id %>">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <img src="<%= user.image_url || 'https://via.placeholder.com/50' %>" alt="Profile Image" class="rounded-circle me-3" width="50" height="50">
+                            <h5 class="card-title mb-0"><%= user.username %></h5>
+                        </div>
+                        <p class="card-text text-muted mb-2"><%= user.email %></p>
+                        <p class="badge bg-secondary">
+                            <%= user.user_type %>
+                        </p>
+                        <p id="admin-badge-<%= user.user_id %>" class="badge <%= user.isAdmin ? 'bg-success' : 'bg-secondary' %>">
+                            <%= user.isAdmin ? 'Admin' : 'User' %>
+                        </p>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn <%= user.isAdmin ? 'btn-outline-danger' : 'btn-outline-primary' %> toggle-admin-btn" data-userid="<%= user.user_id %>">
+                                <%= user.isAdmin ? 'Revoke Admin' : 'Make Admin' %>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Toggle Admin Status
+    document.querySelectorAll('.toggle-admin-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const userId = this.getAttribute('data-userid');
+            const buttonElement = this;
+            const adminBadge = document.getElementById(`admin-badge-${userId}`);
+            
+            fetch(`/admin/api/toggle-admin/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Toggle the button and badge without page reload
+                    const isAdmin = data.isAdmin;
+                    
+                    // Update badge
+                    adminBadge.textContent = isAdmin ? 'Admin' : 'User';
+                    adminBadge.className = `badge ${isAdmin ? 'bg-success' : 'bg-secondary'}`;
+                    
+                    // Update button
+                    buttonElement.textContent = isAdmin ? 'Revoke Admin' : 'Make Admin';
+                    buttonElement.className = `btn ${isAdmin ? 'btn-outline-danger' : 'btn-outline-primary'} toggle-admin-btn`;
+                } else {
+                    alert('Failed to update admin status.');
+                }
+            })
+            .catch(err => console.error('Error:', err));
+        });
+    });
+    function filterUsers() {
+        const query = document.getElementById('searchBar').value.toLowerCase();
+        document.querySelectorAll('.user-card').forEach(card => {
+            const username = card.getAttribute('data-username');
+            if (username.includes(query)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>

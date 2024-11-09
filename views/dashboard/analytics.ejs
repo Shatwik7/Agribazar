@@ -1,0 +1,134 @@
+<% layout('layout/dashboard') %>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h1>Crop Analytics Dashboard</h1>
+<p class="description">Visualize key insights into crop sales, user activity, and bidding trends to make data-driven decisions and optimize performance.</p>
+
+<div class="main-container">
+    <!-- Crop Sales Trends Chart -->
+    <div class="chart-container full-width">
+        <h2 class="chart-title">Crop Sales Trends</h2>
+        <canvas id="cropChart"></canvas>
+        <p class="chart-description">This chart displays the monthly sales trends for various crops, helping you understand peak selling seasons and identify opportunities for growth.</p>
+    </div>
+
+    <!-- Bid Activity Chart -->
+    <div class="chart-container full-width">
+        <h2 class="chart-title">Bid Activity Overview</h2>
+        <canvas id="bidChart"></canvas>
+        <p class="chart-description">Track the bidding trends over time to monitor activity and gauge buyer interest across different crop types.</p>
+    </div>
+
+    <!-- User Type and Crop Type Distribution -->
+    <div class="chart-row">
+        <div class="chart-container">
+            <h2 class="chart-title">User Type Distribution</h2>
+            <canvas id="userTypeChartCircular"></canvas>
+            <p class="chart-description">Understand the breakdown of user types (e.g., buyers, sellers, admins) to see who is actively engaging on the platform.</p>
+        </div>
+
+        <div class="chart-container">
+            <h2 class="chart-title">Crop Type Distribution</h2>
+            <canvas id="cropTypeChartCircular"></canvas>
+            <p class="chart-description">Analyze the variety of crops listed to identify the most popular types and diversify offerings accordingly.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* General Styles */
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f9fafc;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        color: #1a3e5c;
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 2em;
+    }
+
+    .description {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 1.1em;
+        color: #4a6572;
+    }
+
+    /* Main Container */
+    .main-container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 0 20px;
+    }
+
+    /* Chart Title and Description */
+    .chart-title {
+        font-size: 1.5em;
+        color: #2d506e;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .chart-description {
+        font-size: 0.9em;
+        color: #677b8a;
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    /* Chart Containers */
+    .chart-container.full-width {
+        width: 100%;
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 25px;
+    }
+
+    .chart-container {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+    }
+
+    .chart-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    /* Chart Canvas */
+    canvas {
+        width: 100% !important;
+        height: 300px !important;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .chart-row {
+            grid-template-columns: 1fr;
+        }
+        .chart-container {
+            height: 350px;
+        }
+        h1 {
+            font-size: 1.5em;
+        }
+        .description {
+            font-size: 0.9em;
+        }
+    }
+</style>
+
+<script src="/javascript/analytics.js"></script>
